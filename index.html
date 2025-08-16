@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Sunken Garden | An Interactive Ecological Map</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Crimson+Text:ital,wght@0,400;1,400&display=swap" rel="stylesheet" />
+  <style>
+/* Final polished styling - Ambient & Ecological */
+* { 
+  box-sizing: border-box; 
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: #f4f1e9; /* Lighter Parchment */
+  color: #4a443a; /* Dark, earthy brown text */
+  overflow: hidden;
+  min-height: 100vh;
+}
+
+/* UI Panels (Header, Legend, etc.) */
+#header-container, #legend, #plant-info, #search-container {
+  position: fixed;
+  background: rgba(245, 245, 220, 0.85); /* Semi-transparent beige */
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(139, 125, 107, 0.2); /* Soft brown border */
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+}
+
+#header-container { top: 24px; left: 24px; max-width: 320px; z-index: 102; }
+#legend { top: 24px; right: 24px; max-width: 220px; max-height: calc(100vh - 48px); overflow-y: auto; z-index: 100; transition: transform 0.3s ease, opacity 0.3s ease; }
+#search-container { bottom: 24px; left: 24px; min-width: 300px; padding: 12px; z-index: 101; }
+#plant-info { top: 24px; right: 24px; max-width: 350px; max-height: calc(100vh - 48px); overflow-y: auto; z-index: 103; }
+
+/* Typography */
+#title { margin: 0 0 8px 0; font-family: 'Crimson Text', serif; font-size: 1.8rem; font-weight: 400; }
+#title a {
+  color: #5d5547;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+#title a:hover {
+    color: #003399; /* COA Blue on hover */
+}
+#title a.garden-link {
+    font-style: italic;
+}
+
+#subtitle {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  opacity: 0.9;
+  margin: 0 0 16px 0;
+  font-family: 'Crimson Text', serif;
+  color: #6b6355;
+}
+
+#subtitle a {
+    color: #8b7d6b;
+    text-decoration: underline;
+    transition: color 0.2s ease;
+}
+#subtitle a:hover {
+    color: #003399;
+}
+
+
+/* Controls */
+.controls-container { display: flex; flex-direction: column; gap: 8px; } /* Changed to column */
+.control-btn {
+  background: rgba(139, 125, 107, 0.1);
+  border: 1px solid rgba(139, 125, 107, 0.3);
+  border-radius: 6px;
+  color: #5d5547;
+  cursor: pointer;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  width: 100%; /* Make buttons fill container */
+  text-align: center;
+}
+.control-btn:hover {
+  background: rgba(139, 125, 107, 0.2);
+  border-color: rgba(139, 125, 107, 0.5);
+}
+
+.toggle-controls-container { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+.toggle-row { display: flex; justify-content: space-between; align-items: center; }
+.toggle-row label { font-size: 0.9rem; color: #5d5547; }
+.switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(139, 125, 107, 0.3); transition: .4s; border-radius: 22px; }
+.slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: #669966; }
+input:checked + .slider:before { transform: translateX(18px); }
+
+/* Legend Styling */
+#legend.hidden { opacity: 0; pointer-events: none; transform: translateX(20px); }
+#legend.species-mode { max-width: 400px; }
+#legend.species-mode #legend-items { column-count: 2; column-gap: 24px; }
+#legend h3 { margin: 0 0 12px 0; font-size: 1rem; font-weight: 500; color: #5d5547; border-bottom: 1px solid rgba(139, 125, 107, 0.2); padding-bottom: 8px; }
+.legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.85rem; color: #6b6355; cursor: pointer; transition: color 0.2s ease; break-inside: avoid; }
+.legend-item:hover { color: #3b372f; }
+.legend-color-swatch { width: 12px; height: 12px; border-radius: 50%; margin-right: 10px; flex-shrink: 0; border: 1px solid rgba(0, 0, 0, 0.1); }
+
+/* Info Panel Styling */
+#plant-info { transform: translateX(100%); opacity: 0; pointer-events: none; transition: all 0.3s ease; }
+#plant-info.visible { transform: translateX(0); opacity: 1; pointer-events: auto; }
+.info-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(139, 125, 107, 0.2); margin-bottom: 16px; }
+#plant-info h3 { color: #5d5547; margin: 0; padding-bottom: 8px; flex-grow: 1; }
+.info-close-btn { background: transparent; border: none; cursor: pointer; padding: 0; width: 24px; height: 24px; flex-shrink: 0; margin-left: 16px; }
+.info-close-btn svg { width: 100%; height: 100%; stroke: #9c8f7d; transition: stroke 0.2s ease; }
+.info-close-btn:hover svg { stroke: #5d5547; }
+.info-label { color: #8b7d6b; font-weight: 500; margin-bottom: 4px; }
+.info-label.distant-neighbors-label { margin-top: 16px; }
+.info-content { color: #6b6355; margin-bottom: 12px; }
+.info-content.poetic { font-family: 'Crimson Text', serif; font-size: 1.1rem; font-style: italic; line-height: 1.6; margin-bottom: 20px; }
+.nearby-species-list { padding-left: 0; list-style: none; margin: 0; }
+.nearby-species-list li { 
+  color: #6b6355; 
+  margin-bottom: 6px; 
+  cursor: pointer; 
+  transition: color 0.2s ease; 
+  display: flex; 
+  align-items: center;
+}
+.nearby-species-list li:hover { color: #3b372f; }
+.nearby-species-swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+    flex-shrink: 0;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+
+/* Search Styling */
+#search-results { position: absolute; bottom: calc(100% + 4px); left: 0; right: 0; background: rgba(245, 245, 220, 0.95); border: 1px solid rgba(139, 125, 107, 0.2); border-radius: 8px; max-height: 200px; overflow-y: auto; }
+#search-results:empty { display: none; }
+.search-result-item { padding: 12px 16px; cursor: pointer; color: #6b6355; font-family: 'Crimson Text', serif; font-size: 1rem; transition: background-color 0.2s ease; }
+.search-result-item:hover { background-color: rgba(139, 125, 107, 0.1); }
+#search-input { width: 100%; background: rgba(255, 255, 255, 0.5); border: 1px solid rgba(139, 125, 107, 0.3); border-radius: 6px; color: #5d5547; padding: 12px 16px; font-size: 1rem; font-family: 'Crimson Text', serif; transition: all 0.2s ease; }
+#search-input::placeholder { color: rgba(93, 85, 71, 0.6); font-style: italic; }
+#search-input:focus { outline: none; border-color: rgba(139, 125, 107, 0.5); background: rgba(255, 255, 255, 0.8); }
+
+/* Garden Canvas & Map */
+#garden-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; cursor: grab; }
+#garden-container.panning { cursor: grabbing; }
+#garden-canvas { width: 100%; height: 100%; transform-origin: 0 0; }
+#garden-map { position: absolute; z-index: 0; pointer-events: none; opacity: 0.4; transition: opacity 0.3s ease; }
+#garden-map.hidden { opacity: 0; }
+body.paths-hidden.plants-hidden #garden-map:not(.hidden) { 
+    opacity: 0.8; 
+}
+
+/* Network & Plant Nodes */
+.network-node {
+  position: absolute; width: 8px; height: 8px; background: #996633; border: 2px solid rgba(255, 255, 255, 0.7); box-shadow: 0 0 6px rgba(0,0,0,0.3); transform: translate(-50%, -50%); border-radius: 50%; cursor: pointer; transition: all 0.3s ease; z-index: 5;
+}
+.network-node.highlighted, .network-node:hover { background: #A0522D; transform: translate(-50%, -50%) scale(2.5); z-index: 20; }
+body.paths-hidden .network-node, body.paths-hidden .connection-line { display: none; }
+
+.plant-node {
+  position: absolute; width: 15px; height: 15px; border: 3px solid rgba(74, 68, 58, 0.4); box-shadow: 0 0 8px rgba(0,0,0,0.3); transform: translate(-50%, -50%); border-radius: 50%; cursor: pointer; transition: all 0.3s ease; z-index: 10;
+}
+.plant-node:hover { transform: translate(-50%, -50%) scale(1.5); border-color: rgba(74, 68, 58, 0.8); z-index: 20; }
+.plant-node.selected { transform: translate(-50%, -50%) scale(2.2); border-color: #fff; box-shadow: 0 0 16px rgba(0,0,0,0.5); z-index: 25; }
+body.plants-hidden .plant-node { display: none; }
+
+/* Connection Lines */
+.connection-line {
+  position: absolute; height: 2px; background: rgba(153, 102, 51, 0.4); z-index: 1; transform-origin: left center; pointer-events: none;
+}
+.connection-line.highlighted { height: 3px; background: #A0522D; box-shadow: 0 0 8px #A0522D; }
+
+/* Radius Visualization */
+.radius-disk {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 4;
+  transform: translate(-50%, -50%);
+}
+.radius-disk.close {
+  background: rgba(189, 183, 107, 0.15);
+  border: 2px solid rgba(189, 183, 107, 0.5);
+}
+.radius-disk.far {
+  background: rgba(189, 183, 107, 0.1);
+  border: 2px solid rgba(189, 183, 107, 0.4);
+}
+
+
+/* Plant Type Colors (Inspired by COA Palette) */
+.shrubs { background: #339933; } /* Pantone 362 */
+.trees { background: #006666; } /* Pantone 341 */
+.perennials { background: #663366; } /* Pantone 259 */
+.ferns { background: #669999; } /* Pantone 624 */
+.vines { background: #ff9933; } /* Pantone 143 */
+.groundcovers { background: #669966; } /* Pantone 5625 */
+.unknown { background: #a9a9a9; }
+
+/* Mobile Toggles */
+#mobile-menu-toggle, #legend-toggle { display: none; }
+
+/* Responsive & Accessibility */
+@media (max-width: 768px) {
+  #header-container {
+    background: transparent;
+    backdrop-filter: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    width: auto;
+  }
+  #header-content {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 300px;
+    height: 100%;
+    padding: 80px 24px 24px 24px;
+    background: rgba(245, 245, 220, 0.95);
+    backdrop-filter: blur(8px);
+    border-right: 1px solid rgba(139, 125, 107, 0.2);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+  }
+  #header-container.menu-open #header-content {
+    transform: translateX(0);
+  }
+  #mobile-menu-toggle, #legend-toggle {
+    display: block;
+    position: fixed;
+    top: 24px;
+    background: rgba(245, 245, 220, 0.85);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(139, 125, 107, 0.2);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    padding: 10px;
+    cursor: pointer;
+    z-index: 103;
+  }
+  #mobile-menu-toggle { left: 24px; }
+  #legend-toggle { right: 24px; }
+  #legend {
+    right: 24px;
+    left: auto;
+    max-width: 250px;
+  }
+  #legend.mobile-hidden {
+    transform: translateX(calc(100% + 32px));
+    opacity: 0;
+    pointer-events: none;
+  }
+  #search-container {
+    left: 24px; right: 24px; max-width: none;
+  }
+  #plant-info { 
+    left: 24px; right: 24px; max-width: none; max-height: 50vh; 
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.1s !important; }
+}
+.control-btn:focus, #search-input:focus, .plant-node:focus, .network-node:focus {
+  outline: 2px solid #003399; outline-offset: 2px;
+}
+  </style>
+</head>
+<body>
+  <div id="header-container">
+    <div id="header-content">
+        <h1 id="title">
+            <a href="https://www.coa.edu/" target="_blank">The College of the Atlantic</a> 
+            <a href="https://www.coa.edu/live/files/841-appendix-1-sunken-garden-brochure-pdf" target="_blank" class="garden-link">Sunken Garden</a>
+        </h1>
+        <p id="subtitle">
+            A wild, edible sanctuary born from history. Explore a living map of native plants that nourish pollinators, wildlife, and the human spirit.
+        </p>
+        <div class="controls-container">
+            <button class="control-btn" id="reset-view">Reset View</button>
+            <button class="control-btn" id="toggle-color">Color by Category</button>
+        </div>
+        <div class="toggle-controls-container">
+            <div class="toggle-row">
+                <label for="toggle-map">Show Map</label>
+                <label class="switch">
+                    <input type="checkbox" id="toggle-map" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="toggle-row">
+                <label for="toggle-paths">Show Paths</label>
+                <label class="switch">
+                    <input type="checkbox" id="toggle-paths" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="toggle-row">
+                <label for="toggle-plants">Show Plants</label>
+                <label class="switch">
+                    <input type="checkbox" id="toggle-plants" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <button id="mobile-menu-toggle">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 6H20M4 12H20M4 18H20" stroke="#4a443a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+  </button>
+
+  <button id="legend-toggle">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21Z" stroke="#4a443a" stroke-width="2" stroke-miterlimit="10"/>
+          <path d="M12 16.5C14.4853 16.5 16.5 14.4853 16.5 12C16.5 9.51472 14.4853 7.5 12 7.5C9.51472 7.5 7.5 9.51472 7.5 12C7.5 14.4853 9.51472 16.5 12 16.5Z" stroke="#4a443a" stroke-width="2" stroke-miterlimit="10"/>
+          <path d="M12 3V21" stroke="#4a443a" stroke-width="2" stroke-miterlimit="10"/>
+      </svg>
+  </button>
+
+  <div id="legend">
+    <h3>Legend</h3>
+    <div id="legend-items"></div>
+  </div>
+  <div id="search-container">
+    <div id="search-results"></div>
+    <input type="text" id="search-input" placeholder="Seek botanical wisdom..." />
+  </div>
+  <div id="garden-container">
+    <div id="garden-canvas">
+      <img id="garden-map" alt="Map of the Sunken Garden" style="display: none;">
+    </div>
+  </div>
+  <div id="plant-info">
+    <div class="info-header">
+        <h3 id="plant-name">Select a specimen to explore</h3>
+        <button id="close-info" class="info-close-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+    <div id="plant-info-details"></div>
+  </div>
+
+<script>
+// Global data variables
+let edgeList = [];
+let networkPositions = {};
+let plantLabels = {};
+let plantData = {};
+
+// UI state
+let scale = 1;
+let translateX = 0;
+let translateY = 0;
+let isPanning = false;
+let lastPanPoint = { x: 0, y: 0 };
+let colorMode = 'species'; // 'category' or 'species'
+let speciesColorMap = {};
+let radiusDisks = []; // To hold the visual radius disks
+
+// DOM element collections
+const plantNodes = [];
+const networkNodes = [];
+const connections = [];
+let adjacencyList = {};
+
+// NOTE: These radii are in the map's coordinate system (pixels on the map image).
+// 172px was determined to be the equivalent of 10ft on the map.
+const CLOSE_RADIUS = 172; // 10ft
+const FAR_RADIUS = 344;   // 20ft
+
+// Hardcoded category colors for the legend
+const categoryColors = {
+    'Shrubs': '#339933',
+    'Trees': '#006666',
+    'Perennials': '#663366',
+    'Ferns': '#669999',
+    'Vines': '#ff9933',
+    'Groundcovers': '#669966',
+    'Unknown': '#a9a9a9'
+};
+
+// More poetic messages for path nodes
+const pathMessages = {
+    degree1: [
+        { text: 'A threshold to stillness, where the garden path begins its quiet story.', weight: 5 },
+        { text: 'Here, the world recedes, leaving only the scent of earth and leaf.', weight: 5 },
+        { text: 'An entrance to wonder, or a gentle farewell to a hidden world.', weight: 5 },
+        { text: 'From this quiet edge, the garden whispers its first invitation.', weight: 2 },
+        { text: 'A secret gate, guarded by moss and shadow.', weight: 1 }
+    ],
+    degree2: [
+        { text: 'A moment of pause on a flowing current of stone and soil.', weight: 5 },
+        { text: 'The journey continues… what new light filters through the canopy ahead?', weight: 5 },
+        { text: 'The garden breathes around this tranquil point, a gentle, living sigh.', weight: 5 },
+        { text: 'Listen. Can you hear the rustle of ferns, the hum of unseen wings?', weight: 2 },
+        { text: 'Follow the stones; they remember the way, even when we forget.', weight: 1 }
+    ],
+    degree3: [
+        { text: 'A quiet convergence of stone and soil, where one journey ends and another begins.', weight: 5 },
+        { text: 'Here, the garden holds its breath, offering a choice between familiar paths and unseen possibilities.', weight: 5 },
+        { text: `A gathering of ways, where ${'${degree}'} currents of scent and color merge and flow.`, weight: 5 },
+        { text: 'Here, the garden offers a choice. Not of direction, but of daydream.', weight: 2 },
+        { text: 'A crossroads of chlorophyll and contemplation. Which memory will you follow?', weight: 1 }
+    ]
+};
+
+function getRandomMessage(messages) {
+    const totalWeight = messages.reduce((sum, msg) => sum + msg.weight, 0);
+    let random = Math.random() * totalWeight;
+    for (const msg of messages) {
+        if (random < msg.weight) return msg.text;
+        random -= msg.weight;
+    }
+    return messages[0].text; // Fallback
+}
+
+
+// Load all data from JSON files
+async function loadData() {
+  console.log('Loading data files...');
+  try {
+    const [edgeResponse, positionsResponse, labelsResponse, dataResponse] = await Promise.all([
+      fetch('./data/edge-list.json'),
+      fetch('./data/vertex-positions.json'),
+      fetch('./data/plant-labels.json'),
+      fetch('./data/plant-data.json')
+    ]);
+
+    if (!edgeResponse.ok || !positionsResponse.ok || !labelsResponse.ok || !dataResponse.ok) {
+      throw new Error(`One or more data files failed to load`);
+    }
+
+    edgeList = await edgeResponse.json();
+    networkPositions = await positionsResponse.json();
+    plantLabels = await labelsResponse.json();
+    plantData = await dataResponse.json();
+    
+    console.log('Data loaded successfully from JSON files');
+    
+  } catch (error) {
+    console.error('Error loading JSON files (this is expected when running locally):', error);
+    console.log('Loading fallback demo data...');
+    
+    edgeList = [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [1, 6], [2, 7], [3, 8], [4, 9], [5, 10]];
+    networkPositions = {
+      "1": [100, 100], "2": [200, 120], "3": [300, 100], "4": [400, 120], "5": [500, 100],
+      "6": [150, 200], "7": [250, 220], "8": [350, 200], "9": [450, 220], "10": [550, 200]
+    };
+    plantLabels = {
+      "Demo Plant A": [[120, 150], [180, 170]],
+      "Demo Plant B": [[320, 150], [380, 170]],
+      "Demo Plant C": [[520, 150]]
+    };
+    plantData = {
+      "Demo Plant A": { category: "Shrubs", "Flowering Season": "Spring", benefits: "Demo benefits", class: "shrubs" },
+      "Demo Plant B": { category: "Perennials", "Soil Preference": "Moist, well-draining", class: "perennials" },
+      "Demo Plant C": { category: "Trees", "Mature Height": "30-50 feet", care: "Demo care instructions", class: "trees" }
+    };
+    
+    console.log('Fallback data loaded successfully');
+  }
+  
+  adjacencyList = {};
+  edgeList.forEach(([a, b]) => {
+    if (!adjacencyList[a]) adjacencyList[a] = [];
+    if (!adjacencyList[b]) adjacencyList[b] = [];
+    adjacencyList[a].push(b);
+    adjacencyList[b].push(a);
+  });
+  
+  initializeVisualization();
+}
+
+// Pan and zoom functionality
+function updateTransform() {
+  document.getElementById('garden-canvas').style.transform = 
+    `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+}
+
+function setupPanZoom() {
+  const container = document.getElementById('garden-container');
+  
+  container.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const rect = container.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const pointX = (mouseX - translateX) / scale;
+    const pointY = (mouseY - translateY) / scale;
+    const zoomFactor = e.deltaY > 0 ? 0.95 : 1.05;
+    const newScale = Math.max(0.1, Math.min(5, scale * zoomFactor));
+    translateX = mouseX - pointX * newScale;
+    translateY = mouseY - pointY * newScale;
+    scale = newScale;
+    updateTransform();
+  });
+  
+  container.addEventListener('mousedown', (e) => {
+    if (e.target === container || e.target.id === 'garden-canvas') {
+      isPanning = true;
+      lastPanPoint = { x: e.clientX, y: e.clientY };
+      container.classList.add('panning');
+      e.preventDefault();
+    }
+  });
+  
+  document.addEventListener('mousemove', (e) => {
+    if (isPanning) {
+      const deltaX = e.clientX - lastPanPoint.x;
+      const deltaY = e.clientY - lastPanPoint.y;
+      translateX += deltaX;
+      translateY += deltaY;
+      lastPanPoint = { x: e.clientX, y: e.clientY };
+      updateTransform();
+    }
+  });
+  
+  document.addEventListener('mouseup', () => {
+    if (isPanning) {
+      isPanning = false;
+      container.classList.remove('panning');
+    }
+  });
+}
+
+// Create visual elements
+function createPlantNodes() {
+  const canvas = document.getElementById('garden-canvas');
+  plantNodes.forEach(node => node.element.remove());
+  plantNodes.length = 0;
+  
+  Object.entries(plantLabels).forEach(([species, positions]) => {
+    const info = plantData[species] || { class: 'unknown' };
+    
+    positions.forEach(([x, y]) => {
+      y = -y; // Y-coordinate is inverted to match Cartesian system
+      
+      const node = document.createElement('div');
+      node.className = `plant-node ${info.class}`;
+      node.style.left = `${x}px`;
+      node.style.top = `${y}px`;
+      node.title = species;
+      node.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectPlant(species);
+      });
+      
+      canvas.appendChild(node);
+      plantNodes.push({ element: node, species, x, y });
+    });
+  });
+}
+
+function createNetworkNodes() {
+  const canvas = document.getElementById('garden-canvas');
+  networkNodes.forEach(node => node.element.remove());
+  networkNodes.length = 0;
+  
+  Object.entries(networkPositions).forEach(([vertex, position]) => {
+    const vertexNum = parseInt(vertex);
+    let [x, y] = position;
+    y = -y; // Y-coordinate is inverted to match Cartesian system
+    
+    const node = document.createElement('div');
+    node.className = 'network-node';
+    node.style.left = `${x}px`;
+    node.style.top = `${y}px`;
+    node.title = `Network Node ${vertexNum}`;
+    node.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectNetworkNode(vertexNum);
+    });
+    
+    canvas.appendChild(node);
+    networkNodes.push({ element: node, nodeId: vertexNum, x, y });
+  });
+}
+
+function createConnections() {
+  const canvas = document.getElementById('garden-canvas');
+  connections.forEach(conn => conn.element.remove());
+  connections.length = 0;
+  
+  edgeList.forEach(([nodeA, nodeB]) => {
+    const posA = networkPositions[nodeA.toString()];
+    const posB = networkPositions[nodeB.toString()];
+    
+    if (posA && posB) {
+      let [x1, y1] = posA;
+      let [x2, y2] = posB;
+      y1 = -y1; // Y-coordinate is inverted
+      y2 = -y2; // Y-coordinate is inverted
+      
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const length = Math.sqrt(dx * dx + dy * dy);
+      const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+      
+      const line = document.createElement('div');
+      line.className = 'connection-line';
+      line.style.left = `${x1}px`;
+      line.style.top = `${y1}px`;
+      line.style.width = `${length}px`;
+      line.style.transform = `rotate(${angle}deg)`;
+      
+      canvas.appendChild(line);
+      connections.push({ element: line, nodeA, nodeB });
+    }
+  });
+}
+
+// Selection handlers
+function selectPlant(species) {
+  clearSelections();
+  document.getElementById('legend').classList.add('hidden');
+  const info = plantData[species];
+  const detailsContainer = document.getElementById('plant-info-details');
+  detailsContainer.innerHTML = ''; // Clear previous details
+
+  if (info) {
+    document.getElementById('plant-name').textContent = species;
+
+    // Dynamically create info sections
+    for (const [key, value] of Object.entries(info)) {
+        if (key === 'class') continue; // Don't display the 'class' property
+
+        const section = document.createElement('div');
+        section.className = 'info-section';
+
+        const label = document.createElement('div');
+        label.className = 'info-label';
+        // Capitalize first letter and replace underscores with spaces for the label
+        label.textContent = key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
+        
+        const content = document.createElement('div');
+        content.className = 'info-content';
+        content.textContent = value;
+
+        section.appendChild(label);
+        section.appendChild(content);
+        detailsContainer.appendChild(section);
+    }
+    
+    plantNodes.forEach(node => {
+      if (node.species === species) {
+        node.element.classList.add('selected');
+      }
+    });
+  }
+  document.getElementById('plant-info').classList.add('visible');
+}
+
+// Helper function to find nearby plants
+function findNearbyPlants(nodePos) {
+    const nearby = { close: {}, far: {} };
+
+    Object.entries(plantLabels).forEach(([species, positions]) => {
+        positions.forEach(([plantX, plantY]) => {
+            const dx = plantX - nodePos[0];
+            const dy = (-plantY) - (-nodePos[1]); // Both Ys are inverted in the data
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance <= CLOSE_RADIUS) {
+                if (!nearby.close[species] || distance < nearby.close[species]) {
+                    nearby.close[species] = distance;
+                }
+            } else if (distance <= FAR_RADIUS) {
+                 if (!nearby.far[species] || distance < nearby.far[species]) {
+                    nearby.far[species] = distance;
+                }
+            }
+        });
+    });
+
+    const sortSpeciesByDistance = (speciesObj) => {
+        return Object.entries(speciesObj)
+            .map(([species, distance]) => ({ species, distance }))
+            .sort((a, b) => a.distance - b.distance);
+    };
+
+    return {
+        close: sortSpeciesByDistance(nearby.close),
+        far: sortSpeciesByDistance(nearby.far)
+    };
+}
+
+
+function selectNetworkNode(nodeId) {
+  clearSelections();
+  
+  const canvas = document.getElementById('garden-canvas');
+  const nodePos = networkPositions[nodeId.toString()];
+
+  // Create and append the visual radii disks
+  const createDisk = (radius, className) => {
+      const disk = document.createElement('div');
+      disk.className = `radius-disk ${className}`;
+      disk.style.width = `${radius * 2}px`;
+      disk.style.height = `${radius * 2}px`;
+      disk.style.left = `${nodePos[0]}px`;
+      disk.style.top = `${-nodePos[1]}px`; // Inverted Y
+      canvas.appendChild(disk);
+      radiusDisks.push(disk);
+  };
+
+  createDisk(CLOSE_RADIUS, 'close');
+  createDisk(FAR_RADIUS, 'far');
+
+  document.getElementById('legend').classList.add('hidden');
+  const detailsContainer = document.getElementById('plant-info-details');
+  detailsContainer.innerHTML = ''; // Clear previous details
+  
+  document.getElementById('plant-name').textContent = `A Moment on the Path`;
+  
+  // Poetic description
+  const degree = adjacencyList[nodeId] ? adjacencyList[nodeId].length : 0;
+  let role = getRandomMessage(pathMessages.degree2); // Default
+  if (degree === 1) {
+      role = getRandomMessage(pathMessages.degree1);
+  } else if (degree > 2) {
+      role = getRandomMessage(pathMessages.degree3).replace('${degree}', degree);
+  }
+  const poeticContent = document.createElement('div');
+  poeticContent.className = 'info-content poetic';
+  poeticContent.textContent = role;
+  detailsContainer.appendChild(poeticContent);
+
+  // Find and display nearby plants
+  const nearbyPlants = findNearbyPlants(nodePos);
+
+  const createSpeciesList = (title, speciesList, customClass = '') => {
+      if (speciesList.length > 0) {
+          const label = document.createElement('div');
+          label.className = `info-label ${customClass}`;
+          label.textContent = title;
+          detailsContainer.appendChild(label);
+
+          const list = document.createElement('ul');
+          list.className = 'nearby-species-list';
+          speciesList.forEach(plant => {
+              const item = document.createElement('li');
+              
+              const nodeSwatch = document.createElement('span');
+              nodeSwatch.className = 'nearby-species-swatch';
+
+              const info = plantData[plant.species] || {};
+              
+              if (colorMode === 'species') {
+                  nodeSwatch.style.backgroundColor = speciesColorMap[plant.species] || '#a9a9a9';
+              } else {
+                  nodeSwatch.style.backgroundColor = categoryColors[info.category] || '#a9a9a9';
+              }
+
+              const speciesText = document.createElement('span');
+              speciesText.textContent = plant.species;
+
+              item.appendChild(nodeSwatch);
+              item.appendChild(speciesText);
+
+              item.onclick = () => selectPlant(plant.species);
+              list.appendChild(item);
+          });
+          detailsContainer.appendChild(list);
+      }
+  };
+
+  createSpeciesList('Close Companions (within 10ft)', nearbyPlants.close);
+  createSpeciesList('Distant Neighbors (10-20ft)', nearbyPlants.far, 'distant-neighbors-label');
+
+  // Highlight network
+  const connectedIds = adjacencyList[nodeId] || [];
+  networkNodes.forEach(node => {
+    if (node.nodeId === nodeId || connectedIds.includes(node.nodeId)) {
+      node.element.classList.add('highlighted');
+    }
+  });
+  connections.forEach(conn => {
+    if (conn.nodeA === nodeId || conn.nodeB === nodeId) {
+      conn.element.classList.add('highlighted');
+    }
+  });
+  document.getElementById('plant-info').classList.add('visible');
+}
+
+function clearSelections() {
+  document.querySelectorAll('.plant-node').forEach(n => n.classList.remove('selected'));
+  document.querySelectorAll('.network-node').forEach(n => n.classList.remove('highlighted'));
+  document.querySelectorAll('.connection-line').forEach(c => c.classList.remove('highlighted'));
+  
+  // Remove visual radius disks
+  radiusDisks.forEach(disk => disk.remove());
+  radiusDisks = [];
+
+  document.getElementById('plant-info').classList.remove('visible');
+  document.getElementById('legend').classList.remove('hidden');
+}
+
+// Search functionality
+function setupSearch() {
+  const searchInput = document.getElementById('search-input');
+  const resultsContainer = document.getElementById('search-results');
+
+  searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase();
+    resultsContainer.innerHTML = '';
+
+    if (!query) return;
+    
+    const matchedSpecies = Object.keys(plantLabels).filter(species => 
+      species.toLowerCase().includes(query)
+    );
+    
+    matchedSpecies.forEach(species => {
+        const item = document.createElement('div');
+        item.className = 'search-result-item';
+        item.textContent = species;
+        item.addEventListener('click', () => {
+            selectPlant(species);
+            searchInput.value = '';
+            resultsContainer.innerHTML = '';
+
+            const firstPosition = plantLabels[species][0];
+            if (firstPosition) {
+                const [x, y] = firstPosition;
+                translateX = window.innerWidth / 2 - x * scale;
+                translateY = window.innerHeight / 2 + y * scale;
+                updateTransform();
+            }
+        });
+        resultsContainer.appendChild(item);
+    });
+  });
+
+  searchInput.addEventListener('blur', () => {
+      // Delay hiding results to allow click event to register
+      setTimeout(() => {
+          resultsContainer.innerHTML = '';
+      }, 150);
+  });
+}
+
+// Color and Legend Logic
+function generateSpeciesColors() {
+    const speciesNames = Object.keys(plantLabels);
+    speciesNames.forEach((name, i) => {
+        const hue = (i / speciesNames.length) * 360;
+        speciesColorMap[name] = `hsl(${hue}, 70%, 60%)`;
+    });
+}
+
+function updateNodeColors() {
+    plantNodes.forEach(node => {
+        if (colorMode === 'species') {
+            node.element.style.background = speciesColorMap[node.species];
+        } else {
+            // Revert to class-based color
+            node.element.style.background = '';
+        }
+    });
+}
+
+function updateLegend() {
+    const legendEl = document.getElementById('legend');
+    const legendItemsContainer = document.getElementById('legend-items');
+    legendItemsContainer.innerHTML = ''; // Clear current legend
+
+    if (colorMode === 'species') {
+        legendEl.classList.add('species-mode');
+    } else {
+        legendEl.classList.remove('species-mode');
+    }
+
+    const createLegendItem = (name, color, type) => {
+        const item = document.createElement('div');
+        item.className = 'legend-item';
+        item.innerHTML = `<div class="legend-color-swatch" style="background: ${color};"></div><span>${name}</span>`;
+        item.addEventListener('click', () => highlightFromLegend(type, name));
+        legendItemsContainer.appendChild(item);
+    };
+
+    if (colorMode === 'category') {
+        Object.entries(categoryColors).forEach(([name, color]) => {
+            createLegendItem(name, color, 'category');
+        });
+    } else { // 'species' mode
+        Object.entries(speciesColorMap).forEach(([name, color]) => {
+            createLegendItem(name, color, 'species');
+        });
+    }
+}
+
+function highlightFromLegend(type, value) {
+  clearSelections();
+  document.getElementById('plant-info').classList.remove('visible');
+
+  if (type === 'category') {
+    plantNodes.forEach(node => {
+      const nodeInfo = plantData[node.species];
+      if (nodeInfo && nodeInfo.category === value) {
+        node.element.classList.add('selected');
+      }
+    });
+  } else if (type === 'species') {
+    plantNodes.forEach(node => {
+      if (node.species === value) {
+        node.element.classList.add('selected');
+      }
+    });
+  }
+}
+
+// Map and Bounding Box Logic
+function setupMap() {
+    const mapImage = document.getElementById('garden-map');
+    mapImage.src = './imgs/sunken-garden-map.png'; 
+    mapImage.onload = () => {
+        mapImage.style.left = `0px`;
+        mapImage.style.top = `-${mapImage.naturalHeight}px`;
+        mapImage.style.width = `${mapImage.naturalWidth}px`;
+        mapImage.style.height = `${mapImage.naturalHeight}px`;
+        mapImage.style.display = 'block';
+        centerView(); 
+    };
+    mapImage.onerror = () => {
+        mapImage.src = 'https://placehold.co/1000x800/1e293b/94a3b8?text=Sunken+Garden+Map';
+        mapImage.onload = () => { // Recenter after placeholder loads
+            mapImage.style.left = `0px`;
+            mapImage.style.top = `-${mapImage.naturalHeight}px`;
+            mapImage.style.width = `${mapImage.naturalWidth}px`;
+            mapImage.style.height = `${mapImage.naturalHeight}px`;
+            mapImage.style.display = 'block';
+            centerView();
+        }
+    };
+}
+
+
+// Initialize everything
+function initializeVisualization() {
+  console.log('Initializing visualization...');
+  
+  generateSpeciesColors();
+  setupPanZoom();
+  createPlantNodes();
+  createNetworkNodes();
+  createConnections();
+  setupMap();
+  setupSearch();
+  updateNodeColors(); // Apply initial colors
+  updateLegend();
+  // centerView is now called from setupMap after the image loads
+  
+  console.log('Visualization initialized successfully');
+}
+
+// Center the view
+function centerView() {
+  const mapImage = document.getElementById('garden-map');
+  const imageWidth = mapImage.naturalWidth || 1000; // Fallback width
+  const imageHeight = mapImage.naturalHeight || 800; // Fallback height
+
+  const centerX = imageWidth / 2;
+  const centerY = -imageHeight / 2; // Center in inverted coordinate system
+
+  const availableWidth = window.innerWidth;
+  const availableHeight = window.innerHeight;
+
+  // Calculate scale to fit the map initially
+  const scaleX = availableWidth / imageWidth;
+  const scaleY = availableHeight / imageHeight;
+  scale = Math.min(scaleX, scaleY) * 0.9; // 90% of the smallest scale to fit with padding
+
+  translateX = (availableWidth / 2) - (centerX * scale);
+  translateY = (availableHeight / 2) - (centerY * scale);
+  
+  updateTransform();
+}
+
+// DOM Ready Event Listeners
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM loaded, starting application...');
+  
+  const headerContainer = document.getElementById('header-container');
+  const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+  const legendToggle = document.getElementById('legend-toggle');
+  const legend = document.getElementById('legend');
+
+  mobileMenuToggle.onclick = () => {
+      headerContainer.classList.toggle('menu-open');
+  };
+
+  legendToggle.onclick = () => {
+      legend.classList.toggle('mobile-hidden');
+  };
+
+  if (window.innerWidth <= 768) {
+      legend.classList.add('mobile-hidden');
+  }
+
+  document.getElementById('reset-view').onclick = () => {
+    centerView();
+    clearSelections();
+  };
+
+  document.getElementById('toggle-color').onclick = () => {
+      const button = document.getElementById('toggle-color');
+      if (colorMode === 'category') {
+          colorMode = 'species';
+          button.textContent = 'Color by Category';
+      } else {
+          colorMode = 'category';
+          button.textContent = 'Color by Species';
+      }
+      updateNodeColors();
+      updateLegend();
+  };
+
+  document.getElementById('toggle-map').onchange = (e) => {
+      document.body.classList.toggle('map-hidden', !e.target.checked);
+      document.getElementById('garden-map').classList.toggle('hidden', !e.target.checked);
+  };
+
+  document.getElementById('toggle-paths').onchange = (e) => {
+      document.body.classList.toggle('paths-hidden', !e.target.checked);
+  };
+
+  document.getElementById('toggle-plants').onchange = (e) => {
+      document.body.classList.toggle('plants-hidden', !e.target.checked);
+  };
+
+  document.getElementById('close-info').onclick = () => {
+    clearSelections();
+  };
+  
+  loadData();
+});
+</script>
+</body>
+</html>
