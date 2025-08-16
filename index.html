@@ -88,6 +88,35 @@ body {
   border-color: rgba(139, 125, 107, 0.5);
 }
 
+.control-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+}
+.control-row label {
+    font-size: 0.9rem;
+    color: #5d5547;
+    flex-shrink: 0;
+}
+#color-by-select {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(139, 125, 107, 0.3);
+    border-radius: 6px;
+    color: #5d5547;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+#color-by-select:focus {
+    outline: none;
+    border-color: rgba(139, 125, 107, 0.5);
+    background: rgba(255, 255, 255, 0.8);
+}
+
+
 .toggle-controls-container { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
 .toggle-row { display: flex; justify-content: space-between; align-items: center; }
 .toggle-row label { font-size: 0.9rem; color: #5d5547; }
@@ -168,6 +197,7 @@ body.paths-hidden .network-node, body.paths-hidden .connection-line { display: n
 
 .plant-node {
   position: absolute; width: 15px; height: 15px; border: 3px solid rgba(74, 68, 58, 0.4); box-shadow: 0 0 8px rgba(0,0,0,0.3); transform: translate(-50%, -50%); border-radius: 50%; cursor: pointer; transition: all 0.3s ease; z-index: 10;
+  background-color: #a9a9a9; /* Default color */
 }
 .plant-node:hover { transform: translate(-50%, -50%) scale(1.5); border-color: rgba(74, 68, 58, 0.8); z-index: 20; }
 .plant-node.selected { transform: translate(-50%, -50%) scale(2.2); border-color: #fff; box-shadow: 0 0 16px rgba(0,0,0,0.5); z-index: 25; }
@@ -196,15 +226,74 @@ body.plants-hidden .plant-node { display: none; }
   border: 2px solid rgba(189, 183, 107, 0.4);
 }
 
+/* Tutorial Modal */
+#tutorial-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 200;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+#tutorial-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+#tutorial-modal {
+  background: #f4f1e9;
+  padding: 32px;
+  border-radius: 8px;
+  max-width: 500px;
+  width: calc(100% - 48px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  font-family: 'Crimson Text', serif;
+}
+#tutorial-modal h2 {
+  font-size: 1.8rem;
+  color: #5d5547;
+  margin-top: 0;
+}
+#tutorial-modal p {
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  color: #6b6355;
+}
+#tutorial-modal ul {
+  list-style: none;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  color: #6b6355;
+  margin-top: 24px;
+}
+#tutorial-modal li {
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+#close-tutorial {
+  background: #A0522D;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  display: block;
+  margin: 24px auto 0;
+  transition: background-color 0.2s ease;
+}
+#close-tutorial:hover {
+  background: #8B4513;
+}
 
-/* Plant Type Colors (Inspired by COA Palette) */
-.shrubs { background: #339933; } /* Pantone 362 */
-.trees { background: #006666; } /* Pantone 341 */
-.perennials { background: #663366; } /* Pantone 259 */
-.ferns { background: #669999; } /* Pantone 624 */
-.vines { background: #ff9933; } /* Pantone 143 */
-.groundcovers { background: #669966; } /* Pantone 5625 */
-.unknown { background: #a9a9a9; }
 
 /* Mobile Toggles */
 #mobile-menu-toggle, #legend-toggle { display: none; }
@@ -266,6 +355,17 @@ body.plants-hidden .plant-node { display: none; }
   #plant-info { 
     left: 24px; right: 24px; max-width: none; max-height: 50vh; 
   }
+  #tutorial-modal {
+    padding: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+  }
+  #tutorial-modal h2 {
+      font-size: 1.5rem;
+  }
+  #tutorial-modal p, #tutorial-modal li {
+      font-size: 0.9rem;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; transition-duration: 0.1s !important; }
@@ -287,7 +387,10 @@ body.plants-hidden .plant-node { display: none; }
         </p>
         <div class="controls-container">
             <button class="control-btn" id="reset-view">Reset View</button>
-            <button class="control-btn" id="toggle-color">Color by Category</button>
+            <div class="control-row">
+                <label for="color-by-select">Color by:</label>
+                <select id="color-by-select"></select>
+            </div>
         </div>
         <div class="toggle-controls-container">
             <div class="toggle-row">
@@ -354,6 +457,21 @@ body.plants-hidden .plant-node { display: none; }
     </div>
     <div id="plant-info-details"></div>
   </div>
+  
+  <div id="tutorial-overlay">
+      <div id="tutorial-modal">
+          <h2>Welcome to the Sunken Garden</h2>
+          <p>Here are a few ways to explore:</p>
+          <ul>
+              <li><strong>Pan & Zoom:</strong> Click and drag to move the map. Use your scroll wheel to zoom in and out.</li>
+              <li><strong>Explore Plants:</strong> Click on any colored circle to learn about a specific plant species.</li>
+              <li><strong>Discover Connections:</strong> Click on a path node (the small brown circles) to see which plants live nearby.</li>
+              <li><strong>Search:</strong> Use the search bar at the bottom left to find a specific plant by name.</li>
+              <li><strong>Visualize Data:</strong> Use the "Color by" dropdown to see the garden organized by different categories.</li>
+          </ul>
+          <button id="close-tutorial">Begin Exploring</button>
+      </div>
+  </div>
 
 <script>
 // Global data variables
@@ -368,8 +486,9 @@ let translateX = 0;
 let translateY = 0;
 let isPanning = false;
 let lastPanPoint = { x: 0, y: 0 };
-let colorMode = 'species'; // 'category' or 'species'
+let colorByKey = 'species';
 let speciesColorMap = {};
+let dynamicColorMaps = {};
 let radiusDisks = []; // To hold the visual radius disks
 
 // DOM element collections
@@ -382,17 +501,6 @@ let adjacencyList = {};
 // 172px was determined to be the equivalent of 10ft on the map.
 const CLOSE_RADIUS = 172; // 10ft
 const FAR_RADIUS = 344;   // 20ft
-
-// Hardcoded category colors for the legend
-const categoryColors = {
-    'Shrubs': '#339933',
-    'Trees': '#006666',
-    'Perennials': '#663366',
-    'Ferns': '#669999',
-    'Vines': '#ff9933',
-    'Groundcovers': '#669966',
-    'Unknown': '#a9a9a9'
-};
 
 // More poetic messages for path nodes
 const pathMessages = {
@@ -467,9 +575,9 @@ async function loadData() {
       "Demo Plant C": [[520, 150]]
     };
     plantData = {
-      "Demo Plant A": { category: "Shrubs", "Flowering Season": "Spring", benefits: "Demo benefits", class: "shrubs" },
-      "Demo Plant B": { category: "Perennials", "Soil Preference": "Moist, well-draining", class: "perennials" },
-      "Demo Plant C": { category: "Trees", "Mature Height": "30-50 feet", care: "Demo care instructions", class: "trees" }
+      "Demo Plant A": { category: "Shrubs", "Flowering Season": "Spring", benefits: "Demo benefits" },
+      "Demo Plant B": { category: "Perennials", "Soil Preference": "Moist, well-draining" },
+      "Demo Plant C": { category: "Trees", "Mature Height": "30-50 feet", care: "Demo care instructions" }
     };
     
     console.log('Fallback data loaded successfully');
@@ -545,13 +653,11 @@ function createPlantNodes() {
   plantNodes.length = 0;
   
   Object.entries(plantLabels).forEach(([species, positions]) => {
-    const info = plantData[species] || { class: 'unknown' };
-    
     positions.forEach(([x, y]) => {
       y = -y; // Y-coordinate is inverted to match Cartesian system
       
       const node = document.createElement('div');
-      node.className = `plant-node ${info.class}`;
+      node.className = 'plant-node';
       node.style.left = `${x}px`;
       node.style.top = `${y}px`;
       node.title = species;
@@ -637,8 +743,6 @@ function selectPlant(species) {
 
     // Dynamically create info sections
     for (const [key, value] of Object.entries(info)) {
-        if (key === 'class') continue; // Don't display the 'class' property
-
         const section = document.createElement('div');
         section.className = 'info-section';
 
@@ -760,10 +864,12 @@ function selectNetworkNode(nodeId) {
 
               const info = plantData[plant.species] || {};
               
-              if (colorMode === 'species') {
+              const key = colorByKey;
+              if (key === 'species') {
                   nodeSwatch.style.backgroundColor = speciesColorMap[plant.species] || '#a9a9a9';
               } else {
-                  nodeSwatch.style.backgroundColor = categoryColors[info.category] || '#a9a9a9';
+                  const value = info[key];
+                  nodeSwatch.style.backgroundColor = dynamicColorMaps[key]?.[value] || '#a9a9a9';
               }
 
               const speciesText = document.createElement('span');
@@ -863,14 +969,41 @@ function generateSpeciesColors() {
     });
 }
 
+function generateDynamicColors(key) {
+    if (dynamicColorMaps[key]) return;
+
+    const values = new Set();
+    Object.values(plantData).forEach(plant => {
+        if (plant[key]) values.add(plant[key]);
+    });
+
+    const sortedValues = Array.from(values).sort();
+    const colorMap = {};
+    sortedValues.forEach((value, i) => {
+        const hue = (i / sortedValues.length) * 360;
+        colorMap[value] = `hsl(${hue}, 70%, 60%)`;
+    });
+    dynamicColorMaps[key] = colorMap;
+}
+
+
 function updateNodeColors() {
+    const key = colorByKey;
     plantNodes.forEach(node => {
-        if (colorMode === 'species') {
-            node.element.style.background = speciesColorMap[node.species];
-        } else {
-            // Revert to class-based color
-            node.element.style.background = '';
+        const info = plantData[node.species];
+        let color = '#a9a9a9'; // Default for unknown
+
+        if (info) {
+            if (key === 'species') {
+                color = speciesColorMap[node.species];
+            } else {
+                const value = info[key];
+                if (value && dynamicColorMaps[key]) {
+                    color = dynamicColorMaps[key][value];
+                }
+            }
         }
+        node.element.style.backgroundColor = color;
     });
 }
 
@@ -879,50 +1012,80 @@ function updateLegend() {
     const legendItemsContainer = document.getElementById('legend-items');
     legendItemsContainer.innerHTML = ''; // Clear current legend
 
-    if (colorMode === 'species') {
+    const key = colorByKey;
+
+    if (key === 'species') {
         legendEl.classList.add('species-mode');
     } else {
         legendEl.classList.remove('species-mode');
     }
 
-    const createLegendItem = (name, color, type) => {
+    const createLegendItem = (name, color, type, value) => {
         const item = document.createElement('div');
         item.className = 'legend-item';
         item.innerHTML = `<div class="legend-color-swatch" style="background: ${color};"></div><span>${name}</span>`;
-        item.addEventListener('click', () => highlightFromLegend(type, name));
+        item.addEventListener('click', () => highlightFromLegend(type, value));
         legendItemsContainer.appendChild(item);
     };
-
-    if (colorMode === 'category') {
-        Object.entries(categoryColors).forEach(([name, color]) => {
-            createLegendItem(name, color, 'category');
-        });
-    } else { // 'species' mode
-        Object.entries(speciesColorMap).forEach(([name, color]) => {
-            createLegendItem(name, color, 'species');
-        });
+    
+    let colorMap = {};
+    if (key === 'species') {
+        colorMap = speciesColorMap;
+    } else if (dynamicColorMaps[key]) {
+        colorMap = dynamicColorMaps[key];
     }
+
+    Object.entries(colorMap).forEach(([name, color]) => {
+        createLegendItem(name, color, key, name);
+    });
 }
 
-function highlightFromLegend(type, value) {
+function highlightFromLegend(key, value) {
   clearSelections();
   document.getElementById('plant-info').classList.remove('visible');
 
-  if (type === 'category') {
-    plantNodes.forEach(node => {
-      const nodeInfo = plantData[node.species];
-      if (nodeInfo && nodeInfo.category === value) {
+  plantNodes.forEach(node => {
+      let match = false;
+      if (key === 'species') {
+          match = node.species === value;
+      } else {
+          const nodeInfo = plantData[node.species];
+          if (nodeInfo && nodeInfo[key] === value) {
+              match = true;
+          }
+      }
+      if (match) {
         node.element.classList.add('selected');
       }
     });
-  } else if (type === 'species') {
-    plantNodes.forEach(node => {
-      if (node.species === value) {
-        node.element.classList.add('selected');
-      }
-    });
-  }
 }
+
+function populateColorDropdown() {
+    const select = document.getElementById('color-by-select');
+    const uniqueKeys = new Set();
+    Object.values(plantData).forEach(plant => {
+        Object.keys(plant).forEach(key => {
+            uniqueKeys.add(key);
+        });
+    });
+
+    select.innerHTML = ''; // Clear existing options
+    
+    const createOption = (value, text) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = text;
+        select.appendChild(option);
+    };
+
+    createOption('species', 'Species');
+    
+    Array.from(uniqueKeys).sort().forEach(key => {
+        const formattedKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
+        createOption(key, formattedKey);
+    });
+}
+
 
 // Map and Bounding Box Logic
 function setupMap() {
@@ -954,7 +1117,13 @@ function setupMap() {
 function initializeVisualization() {
   console.log('Initializing visualization...');
   
+  populateColorDropdown();
   generateSpeciesColors();
+  // Generate colors for all possible dynamic keys upfront
+  const allKeys = new Set();
+  Object.values(plantData).forEach(plant => Object.keys(plant).forEach(k => allKeys.add(k)));
+  allKeys.forEach(key => generateDynamicColors(key));
+
   setupPanZoom();
   createPlantNodes();
   createNetworkNodes();
@@ -999,6 +1168,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
   const legendToggle = document.getElementById('legend-toggle');
   const legend = document.getElementById('legend');
+  const colorSelect = document.getElementById('color-by-select');
+  const tutorialOverlay = document.getElementById('tutorial-overlay');
+  const closeTutorialBtn = document.getElementById('close-tutorial');
+
+  // Show the tutorial on first load
+  tutorialOverlay.classList.add('visible');
+
+  closeTutorialBtn.onclick = () => {
+      tutorialOverlay.classList.remove('visible');
+  };
 
   mobileMenuToggle.onclick = () => {
       headerContainer.classList.toggle('menu-open');
@@ -1017,17 +1196,10 @@ document.addEventListener('DOMContentLoaded', () => {
     clearSelections();
   };
 
-  document.getElementById('toggle-color').onclick = () => {
-      const button = document.getElementById('toggle-color');
-      if (colorMode === 'category') {
-          colorMode = 'species';
-          button.textContent = 'Color by Category';
-      } else {
-          colorMode = 'category';
-          button.textContent = 'Color by Species';
-      }
-      updateNodeColors();
-      updateLegend();
+  colorSelect.onchange = (e) => {
+    colorByKey = e.target.value;
+    updateNodeColors();
+    updateLegend();
   };
 
   document.getElementById('toggle-map').onchange = (e) => {
