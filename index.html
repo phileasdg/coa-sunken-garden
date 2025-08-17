@@ -226,8 +226,8 @@ body.plants-hidden .plant-node { display: none; }
   border: 2px solid rgba(189, 183, 107, 0.4);
 }
 
-/* Tutorial Modal */
-#tutorial-overlay {
+/* Tutorial & About Modals */
+.modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -242,11 +242,11 @@ body.plants-hidden .plant-node { display: none; }
   pointer-events: none;
   transition: opacity 0.3s ease;
 }
-#tutorial-overlay.visible {
+.modal-overlay.visible {
   opacity: 1;
   pointer-events: auto;
 }
-#tutorial-modal {
+.modal {
   background: #f4f1e9;
   padding: 32px;
   border-radius: 8px;
@@ -255,17 +255,18 @@ body.plants-hidden .plant-node { display: none; }
   box-shadow: 0 10px 30px rgba(0,0,0,0.2);
   font-family: 'Crimson Text', serif;
 }
-#tutorial-modal h2 {
+.modal h2 {
   font-size: 1.8rem;
   color: #5d5547;
   margin-top: 0;
 }
-#tutorial-modal p {
+.modal p {
   font-family: 'Inter', sans-serif;
   font-size: 1rem;
   color: #6b6355;
+  line-height: 1.6;
 }
-#tutorial-modal ul {
+.modal ul {
   list-style: none;
   padding: 0;
   font-family: 'Inter', sans-serif;
@@ -273,11 +274,11 @@ body.plants-hidden .plant-node { display: none; }
   color: #6b6355;
   margin-top: 24px;
 }
-#tutorial-modal li {
+.modal li {
   margin-bottom: 12px;
   line-height: 1.5;
 }
-#close-tutorial {
+.modal .modal-button {
   background: #A0522D;
   color: white;
   border: none;
@@ -289,8 +290,10 @@ body.plants-hidden .plant-node { display: none; }
   display: block;
   margin: 24px auto 0;
   transition: background-color 0.2s ease;
+  text-decoration: none;
+  text-align: center;
 }
-#close-tutorial:hover {
+.modal .modal-button:hover {
   background: #8B4513;
 }
 
@@ -355,15 +358,15 @@ body.plants-hidden .plant-node { display: none; }
   #plant-info { 
     left: 24px; right: 24px; max-width: none; max-height: 50vh; 
   }
-  #tutorial-modal {
+  .modal {
     padding: 24px;
     max-height: calc(100vh - 48px);
     overflow-y: auto;
   }
-  #tutorial-modal h2 {
+  .modal h2 {
       font-size: 1.5rem;
   }
-  #tutorial-modal p, #tutorial-modal li {
+  .modal p, .modal li {
       font-size: 0.9rem;
   }
 }
@@ -383,7 +386,7 @@ body.plants-hidden .plant-node { display: none; }
             <a href="https://www.coa.edu/live/files/841-appendix-1-sunken-garden-brochure-pdf" target="_blank" class="garden-link">Sunken Garden</a>
         </h1>
         <p id="subtitle">
-            Explore a living map of native plants that nourish pollinators, wildlife, and the human spirit.
+            A wild, edible sanctuary born from history. Explore a living map of native plants that nourish pollinators, wildlife, and the human spirit.
         </p>
         <div class="controls-container">
             <button class="control-btn" id="reset-view">Reset View</button>
@@ -415,6 +418,7 @@ body.plants-hidden .plant-node { display: none; }
                 </label>
             </div>
         </div>
+        <button class="control-btn" id="about-btn" style="margin-top: 16px;">About this Map</button>
     </div>
   </div>
 
@@ -458,8 +462,8 @@ body.plants-hidden .plant-node { display: none; }
     <div id="plant-info-details"></div>
   </div>
   
-  <div id="tutorial-overlay">
-      <div id="tutorial-modal">
+  <div id="tutorial-overlay" class="modal-overlay">
+      <div id="tutorial-modal" class="modal">
           <h2>Welcome to the Sunken Garden</h2>
           <p>Here are a few ways to explore:</p>
           <ul>
@@ -469,7 +473,18 @@ body.plants-hidden .plant-node { display: none; }
               <li><strong>Search:</strong> Use the search bar at the bottom left to find a specific plant by name.</li>
               <li><strong>Visualize Data:</strong> Use the "Color by" dropdown to see the garden organized by different categories.</li>
           </ul>
-          <button id="close-tutorial">Begin Exploring</button>
+          <button id="close-tutorial" class="modal-button">Begin Exploring</button>
+      </div>
+  </div>
+
+  <div id="about-overlay" class="modal-overlay">
+      <div id="about-modal" class="modal">
+          <h2>About this Map</h2>
+          <p>This interactive map was created by Phileas Dazeley-Gaist (COA '23) on a whim as a passion project. It's designed to encourage people to connect with the plant life in the COA Sunken Garden and celebrate the beauty of this unique space.</p>
+          <p>If you find this map useful or inspiring, please consider supporting its continued development or checking out more of my work below.</p>
+          <a href="https://phileasdg.github.io/" target="_blank" class="modal-button">Personal Blog</a>
+          <a href="https://www.buymeacoffee.com/yourlink" target="_blank" id="donate-button" class="modal-button" style="margin-top: 12px;">Buy me a coffee</a>
+          <button id="close-about" class="modal-button" style="background-color: #6b6355; margin-top: 12px;">Close</button>
       </div>
   </div>
 
@@ -486,6 +501,7 @@ let translateX = 0;
 let translateY = 0;
 let isPanning = false;
 let lastPanPoint = { x: 0, y: 0 };
+let initialPinchDistance = null;
 let colorByKey = 'species';
 let speciesColorMap = {};
 let dynamicColorMaps = {};
@@ -643,6 +659,62 @@ function setupPanZoom() {
       isPanning = false;
       container.classList.remove('panning');
     }
+  });
+
+  // Touch controls for mobile
+  container.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+          isPanning = true;
+          lastPanPoint = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+          container.classList.add('panning');
+      } else if (e.touches.length === 2) {
+          isPanning = false; // Stop panning when a second finger is added
+          initialPinchDistance = Math.hypot(
+              e.touches[0].clientX - e.touches[1].clientX,
+              e.touches[0].clientY - e.touches[1].clientY
+          );
+      }
+      e.preventDefault();
+  }, { passive: false });
+
+  container.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 1 && isPanning) {
+          const deltaX = e.touches[0].clientX - lastPanPoint.x;
+          const deltaY = e.touches[0].clientY - lastPanPoint.y;
+          translateX += deltaX;
+          translateY += deltaY;
+          lastPanPoint = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+          updateTransform();
+      } else if (e.touches.length === 2 && initialPinchDistance) {
+          const newPinchDistance = Math.hypot(
+              e.touches[0].clientX - e.touches[1].clientX,
+              e.touches[0].clientY - e.touches[1].clientY
+          );
+
+          const rect = container.getBoundingClientRect();
+          const touchCenterX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+          const touchCenterY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+
+          const pointX = (touchCenterX - translateX) / scale;
+          const pointY = (touchCenterY - translateY) / scale;
+          
+          const zoomFactor = newPinchDistance / initialPinchDistance;
+          const newScale = Math.max(0.1, Math.min(5, scale * zoomFactor));
+
+          translateX = touchCenterX - pointX * newScale;
+          translateY = touchCenterY - pointY * newScale;
+          scale = newScale;
+
+          initialPinchDistance = newPinchDistance; // Update for continuous zoom
+          updateTransform();
+      }
+      e.preventDefault();
+  }, { passive: false });
+
+  container.addEventListener('touchend', (e) => {
+      isPanning = false;
+      initialPinchDistance = null;
+      container.classList.remove('panning');
   });
 }
 
@@ -1171,12 +1243,33 @@ document.addEventListener('DOMContentLoaded', () => {
   const colorSelect = document.getElementById('color-by-select');
   const tutorialOverlay = document.getElementById('tutorial-overlay');
   const closeTutorialBtn = document.getElementById('close-tutorial');
+  const aboutOverlay = document.getElementById('about-overlay');
+  const aboutBtn = document.getElementById('about-btn');
+  const closeAboutBtn = document.getElementById('close-about');
+  const tutorialList = tutorialOverlay.querySelector('ul');
+
+  const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+  if (isTouchDevice) {
+      const panZoomLi = tutorialList.querySelector('li'); // Get the first li
+      if (panZoomLi) {
+          panZoomLi.innerHTML = '<strong>Pan & Zoom:</strong> Drag with one finger to move the map. Pinch with two fingers to zoom.';
+      }
+  }
 
   // Show the tutorial on first load
   tutorialOverlay.classList.add('visible');
 
   closeTutorialBtn.onclick = () => {
       tutorialOverlay.classList.remove('visible');
+  };
+
+  aboutBtn.onclick = () => {
+      aboutOverlay.classList.add('visible');
+  };
+
+  closeAboutBtn.onclick = () => {
+      aboutOverlay.classList.remove('visible');
   };
 
   mobileMenuToggle.onclick = () => {
