@@ -737,6 +737,10 @@ function createPlantNodes() {
         e.stopPropagation();
         selectPlant(species);
       });
+      node.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+        selectPlant(species);
+      });
       
       canvas.appendChild(node);
       plantNodes.push({ element: node, species, x, y });
@@ -760,6 +764,10 @@ function createNetworkNodes() {
     node.style.top = `${y}px`;
     node.title = `Network Node ${vertexNum}`;
     node.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectNetworkNode(vertexNum);
+    });
+    node.addEventListener('touchstart', (e) => {
       e.stopPropagation();
       selectNetworkNode(vertexNum);
     });
