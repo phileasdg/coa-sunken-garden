@@ -180,7 +180,9 @@ input:checked + .slider:before { transform: translateX(18px); }
 .info-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(139, 125, 107, 0.2); margin-bottom: 16px; }
 #plant-info h3 { color: #5d5547; margin: 0; padding-bottom: 8px; flex-grow: 1; display: flex; align-items: center; }
 #plant-info .common-name-native { font-size: 0.9rem; color: #8b7d6b; font-style: italic; }
-#plant-info .latin-name { font-family: 'Crimson Text', serif; font-style: italic; font-size: 1rem; color: #8b7d6b; margin-top: -4px; margin-bottom: 8px; }
+.latin-name { font-family: 'Crimson Text', serif; font-style: italic; font-size: 1rem; color: #8b7d6b; }
+#plant-info .latin-name { margin-top: -4px; margin-bottom: 8px; }
+.nearby-species-list .latin-name { font-size: 0.85rem; margin-left: 8px; opacity: 0.8; }
 .info-close-btn { background: transparent; border: none; cursor: pointer; padding: 0; width: 24px; height: 24px; flex-shrink: 0; margin-left: 16px; }
 .info-close-btn svg { width: 100%; height: 100%; stroke: #9c8f7d; transition: stroke 0.2s ease; }
 .info-close-btn:hover svg { stroke: #5d5547; }
@@ -355,6 +357,19 @@ body.plants-hidden .plant-node { display: none; }
 .modal .modal-button:active {
     transform: scale(0.95);
 }
+#tutorial-options {
+    margin-top: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#tutorial-options label {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    color: #6b6355;
+    margin-left: 8px;
+    cursor: pointer;
+}
 
 
 /* Mobile Toggles */
@@ -384,7 +399,7 @@ body.plants-hidden .plant-node { display: none; }
     transition: transform 0.3s ease-in-out;
     z-index: 104; /* High z-index for menu */
   }
-  #header-container.menu-open #header-content {
+  body.menu-open #header-content {
     transform: translateX(0);
   }
   #mobile-menu-toggle, #legend-toggle {
@@ -404,19 +419,22 @@ body.plants-hidden .plant-node { display: none; }
     left: 24px; 
     z-index: 101; /* Behind panels by default */
   }
-  #header-container.menu-open ~ #mobile-menu-toggle {
+  body.menu-open #mobile-menu-toggle {
       z-index: 105; /* On top of everything when menu is open */
   }
   #legend-toggle { 
     right: 24px; 
-    z-index: 103;
+    z-index: 102;
+  }
+  #legend-toggle.hidden {
+      display: none;
   }
   #legend {
     right: 24px;
     left: auto;
     max-width: calc(100% - 96px); /* Prevent overlap with menu button */
     max-height: calc(100vh - 120px); /* Prevent overlap with search bar */
-    z-index: 102; /* On top of closed hamburger */
+    z-index: 102;
   }
   #legend.mobile-hidden {
     transform: translateX(calc(100% + 32px));
@@ -434,7 +452,7 @@ body.plants-hidden .plant-node { display: none; }
     right: 24px; 
     max-width: none; 
     max-height: calc(100vh - 120px); /* Prevent overlap with search bar */
-    z-index: 102; /* On top of closed hamburger */
+    z-index: 103;
   }
   .modal {
     padding: 24px;
@@ -565,6 +583,10 @@ body.plants-hidden .plant-node { display: none; }
               <li><strong>Visualize Data:</strong> Use the "Color by" dropdown to see the garden organized by different categories.</li>
           </ul>
           <button id="close-tutorial" class="modal-button">Begin Exploring</button>
+          <div id="tutorial-options">
+              <input type="checkbox" id="hide-tutorial-forever">
+              <label for="hide-tutorial-forever">Don't show this again</label>
+          </div>
       </div>
   </div>
 
@@ -575,7 +597,7 @@ body.plants-hidden .plant-node { display: none; }
           <p>The map and initial plant labels are based on the <a href="https://www.coa.edu/live/files/841-appendix-1-sunken-garden-brochure-pdf" target="_blank">Sunken Garden Brochure</a>. The detailed plant information was sourced from Yaniv Korman's charmingly and lovingly edited Edible Plant List of the Sunken Garden booklet.</p>
           <p>If you find this map useful or inspiring, please consider supporting its continued development or checking out more of my work below.</p>
           <a href="https://phileasdg.github.io/" target="_blank" class="modal-button">Personal Blog</a>
-          <a href="https://www.paypal.com/donate/?business=K74DYULZ2J&no_recurring=0&item_name=Buy+me+a+coffee+%3AD&currency_code=USD" target="_blank" id="donate-button" class="modal-button" style="margin-top: 12px;">Buy me a coffee</a>
+          <a href="https://www.paypal.com/donate/?business=K74DYULZRHZ2J&no_recurring=0&item_name=Buy+me+a+coffee+%3AD&currency_code=EUR" target="_blank" id="donate-button" class="modal-button" style="margin-top: 12px;">Buy me a coffee</a>
           <button id="close-about" class="modal-button" style="background-color: #6b6355; margin-top: 12px;">Close</button>
       </div>
   </div>
@@ -599,7 +621,7 @@ let speciesColorMap = {};
 let dynamicColorMaps = {};
 let radiusDisks = []; // To hold the visual radius disks
 let selectedNetworkNodeId = null; // Track selected path node
-let wasLegendVisible = false; // Track legend state before opening info panel
+let wasLegendMaximized = false; // Track legend state before opening info panel
 
 // DOM element collections
 const plantNodes = [];
@@ -914,10 +936,15 @@ function createConnections() {
   });
 }
 
-function hideLegend() {
+function handleLegendOnPanelOpen() {
     const legend = document.getElementById('legend');
-    wasLegendVisible = !legend.classList.contains('hidden') && !legend.classList.contains('mobile-hidden');
-    legend.classList.add('hidden');
+    const infoPanel = document.getElementById('plant-info');
+    // Only capture the legend's state if an info panel is not already visible.
+    // This prevents the state from being overwritten when switching between panels.
+    if (!infoPanel.classList.contains('visible')) { 
+        wasLegendMaximized = !legend.classList.contains('minified');
+    }
+    legend.classList.add('minified');
 }
 
 // Selection handlers
@@ -930,7 +957,7 @@ function selectPlant(species, isNodeClick = false) {
 
   // Original logic to display species-specific info
   clearSelections();
-  hideLegend();
+  handleLegendOnPanelOpen();
 
   const plantInfoEntry = Object.entries(plantData).find(([commonName, data]) => 
       commonName.toLowerCase() === species.toLowerCase() || 
@@ -1006,7 +1033,7 @@ function selectPlant(species, isNodeClick = false) {
 
 function displayCategoryPanel(species) {
     clearSelections();
-    hideLegend();
+    handleLegendOnPanelOpen();
 
     const plantInfoEntry = Object.entries(plantData).find(([cn, d]) => 
         cn.toLowerCase() === species.toLowerCase() || (d.latin_name && d.latin_name.toLowerCase() === species.toLowerCase())
@@ -1029,13 +1056,15 @@ function displayCategoryPanel(species) {
     const select = document.getElementById('color-by-select');
     const categoryName = select.options[select.selectedIndex].text;
     const categoryColor = dynamicColorMaps[colorByKey][categoryValue];
+    
+    const selectedPlantLatinName = info.latin_name || '';
 
     const swatchHTML = `<div class="plant-node" style="background-color: ${categoryColor}; position: relative; left: auto; top: auto; display: inline-block; vertical-align: middle; margin-right: 12px; transform: none; flex-shrink: 0;"></div>`;
     nameEl.innerHTML = `${swatchHTML}<span>${categoryName}: ${categoryValue}</span>`;
 
     let detailsHTML = `
         <div class="info-content" style="margin-bottom: 16px;">
-            You selected <strong>${species}</strong>.
+            You selected <span class="latin-name">${species}</span>.
         </div>
         <button class="control-btn" id="view-species-details" style="margin-bottom: 20px;">View Details for ${species}</button>
         <div class="info-label">Other plants in this category:</div>
@@ -1109,7 +1138,7 @@ function findNearbyPlants(nodePos) {
 
 function selectNetworkNode(nodeId) {
   clearSelections();
-  hideLegend();
+  handleLegendOnPanelOpen();
   selectedNetworkNodeId = nodeId;
   
   const canvas = document.getElementById('garden-canvas');
@@ -1224,13 +1253,15 @@ function clearSelections() {
   
   radiusDisks.forEach(disk => disk.remove());
   radiusDisks = [];
+}
 
-  document.getElementById('plant-info').classList.remove('visible', 'is-scrollable');
-  
-  if (wasLegendVisible) {
-      document.getElementById('legend').classList.remove('hidden');
-  }
-  wasLegendVisible = false; // Reset for next time
+function closeInfoPanelAndRestoreLegend() {
+    document.getElementById('plant-info').classList.remove('visible');
+    clearSelections();
+    if (wasLegendMaximized) {
+        document.getElementById('legend').classList.remove('minified');
+        wasLegendMaximized = false; // Consume the state
+    }
 }
 
 // Search functionality
@@ -1449,7 +1480,11 @@ function updateLegend() {
         item.dataset.key = type;
         item.dataset.value = value;
         item.innerHTML = `<div class="legend-color-swatch" style="background: ${color};"></div><span>${name}</span>`;
-        item.addEventListener('click', () => highlightFromLegend(type, value));
+        item.addEventListener('click', () => {
+            closeInfoPanelAndRestoreLegend();
+            clearSelections();
+            highlightFromLegend(type, value);
+        });
         legendItemsContainer.appendChild(item);
     };
     
@@ -1500,7 +1535,11 @@ function updateLegend() {
             item.dataset.key = 'uncolored';
             item.dataset.value = 'uncolored';
             item.innerHTML = `<div class="legend-color-swatch" style="background: ${uncoloredSwatch}; border: 1px solid rgba(74, 68, 58, 0.2);"></div><span>No Data</span>`;
-            item.addEventListener('click', () => highlightFromLegend('uncolored', 'uncolored'));
+            item.addEventListener('click', () => {
+                closeInfoPanelAndRestoreLegend();
+                clearSelections();
+                highlightFromLegend('uncolored', 'uncolored');
+            });
             legendItemsContainer.appendChild(item);
         }
     }
@@ -1510,9 +1549,6 @@ function updateLegend() {
 }
 
 function highlightFromLegend(key, value) {
-  clearSelections();
-  document.getElementById('plant-info').classList.remove('visible');
-
   plantNodes.forEach(node => {
       let match = false;
       if (key === 'uncolored') {
@@ -1695,6 +1731,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const closeAboutBtn = document.getElementById('close-about');
   const tutorialList = tutorialOverlay.querySelector('ul');
   const legendMinifyToggle = document.getElementById('legend-minify-toggle');
+  const hideTutorialCheckbox = document.getElementById('hide-tutorial-forever');
 
   const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
@@ -1705,11 +1742,22 @@ document.addEventListener('DOMContentLoaded', () => {
       }
   }
 
-  tutorialOverlay.classList.add('visible');
-  closeTutorialBtn.onclick = () => tutorialOverlay.classList.remove('visible');
+  if (localStorage.getItem('hideTutorial') !== 'true') {
+    tutorialOverlay.classList.add('visible');
+  }
+
+  closeTutorialBtn.onclick = () => {
+      if (hideTutorialCheckbox.checked) {
+          localStorage.setItem('hideTutorial', 'true');
+      }
+      tutorialOverlay.classList.remove('visible');
+  };
+
   aboutBtn.onclick = () => aboutOverlay.classList.add('visible');
   closeAboutBtn.onclick = () => aboutOverlay.classList.remove('visible');
-  mobileMenuToggle.onclick = () => headerContainer.classList.toggle('menu-open');
+  mobileMenuToggle.onclick = () => {
+      document.body.classList.toggle('menu-open');
+  };
   legendToggle.onclick = () => legend.classList.toggle('mobile-hidden');
   legendMinifyToggle.onclick = () => legend.classList.toggle('minified');
 
@@ -1719,17 +1767,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('reset-view').onclick = () => {
     centerView();
-    clearSelections();
+    closeInfoPanelAndRestoreLegend();
   };
 
   colorSelect.onchange = (e) => {
-    clearSelections();
+    closeInfoPanelAndRestoreLegend();
     colorByKey = e.target.value;
     updateNodeColors();
     updateLegend();
-    if (selectedNetworkNodeId) {
-        updatePathNodePanelContent(selectedNetworkNodeId);
-    }
   };
 
   document.getElementById('toggle-map').onchange = (e) => {
@@ -1745,9 +1790,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.body.classList.toggle('plants-hidden', !e.target.checked);
   };
 
-  document.getElementById('close-info').onclick = () => {
-    clearSelections();
-  };
+  document.getElementById('close-info').onclick = closeInfoPanelAndRestoreLegend;
   
   loadData();
 });
