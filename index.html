@@ -458,7 +458,7 @@ body.plants-hidden .node-wrapper.plant-type { display: none; }
     right: 24px;
     left: auto;
     max-width: calc(100% - 96px); /* Prevent overlap with menu button */
-    max-height: calc(100vh - 120px); /* Prevent overlap with search bar */
+    max-height: calc(100vh - 112px); /* Adjusted for search bar */
     z-index: 102;
   }
   #legend.multi-column #legend-items {
@@ -471,7 +471,7 @@ body.plants-hidden .node-wrapper.plant-type { display: none; }
     left: 24px; 
     right: 24px; 
     max-width: none; 
-    max-height: calc(100vh - 120px); /* Prevent overlap with search bar */
+    max-height: calc(100vh - 112px); /* Adjusted for search bar */
     z-index: 103;
   }
   .modal {
@@ -609,7 +609,7 @@ body.plants-hidden .node-wrapper.plant-type { display: none; }
           <p>The map and initial plant labels are based on the <a href="https://www.coa.edu/live/files/841-appendix-1-sunken-garden-brochure-pdf" target="_blank">Sunken Garden Brochure</a>. The detailed plant information was sourced from Yaniv Korman's charmingly and lovingly edited Edible Plant List of the Sunken Garden booklet.</p>
           <p>If you find this map useful or inspiring, please consider supporting its continued development or checking out more of my work below.</p>
           <a href="https://phileasdg.github.io/" target="_blank" class="modal-button">Personal Blog</a>
-          <a href="https://www.paypal.com/donate/?business=K74DYULZRHZ2J&no_recurring=0&item_name=Buy+me+a+coffee+%3AD&currency_code=EUR" target="_blank" id="donate-button" class="modal-button" style="margin-top: 12px;">Buy me a coffee</a>
+          <a href="https://www.paypal.com/donate/?business=K74DYULZRHZ2J&no_recurring=0&item_name=Buy+me+a+coffee+%3AD&currency_code=USD" target="_blank" id="donate-button" class="modal-button" style="margin-top: 12px;">Buy me a coffee</a>
           <button id="close-about" class="modal-button" style="background-color: #6b6355; margin-top: 12px;">Close</button>
       </div>
   </div>
@@ -914,37 +914,39 @@ function createNetworkNodes() {
 }
 
 function addNodeEventListeners(wrapper, selectionCallback) {
-    let touchStart = null;
+    let touchStartInfo = null;
     const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
-    // On touch start, record position but do nothing else. Allow event to bubble for panning.
     wrapper.addEventListener('touchstart', (e) => {
         if (e.touches.length === 1) {
-            touchStart = {
+            touchStartInfo = {
                 x: e.touches[0].clientX,
-                y: e.touches[0].clientY
+                y: e.touches[0].clientY,
+                isTap: true // Assume it's a tap until proven otherwise
             };
         }
     }, { passive: true });
 
-    // On touch end, check if it was a tap or a pan.
-    wrapper.addEventListener('touchend', (e) => {
-        if (touchStart && e.changedTouches.length === 1) {
-            const touchEnd = {
-                x: e.changedTouches[0].clientX,
-                y: e.changedTouches[0].clientY
-            };
-            const distance = Math.hypot(touchEnd.x - touchStart.x, touchEnd.y - touchStart.y);
-
-            if (distance < 10) { // Threshold for what's considered a tap
-                e.preventDefault(); // Important: prevents the browser from firing a 'click' event after this
-                selectionCallback();
+    wrapper.addEventListener('touchmove', (e) => {
+        if (touchStartInfo && touchStartInfo.isTap) {
+            const moveX = e.touches[0].clientX;
+            const moveY = e.touches[0].clientY;
+            const distance = Math.hypot(moveX - touchStartInfo.x, moveY - touchStartInfo.y);
+            if (distance > 10) { // If finger moves more than 10px, it's a pan
+                touchStartInfo.isTap = false;
             }
         }
-        touchStart = null; // Reset for next touch
+    }, { passive: true });
+
+    wrapper.addEventListener('touchend', (e) => {
+        if (touchStartInfo && touchStartInfo.isTap) {
+            e.preventDefault();
+            e.stopPropagation(); // Stop the event from bubbling to the pan/zoom container
+            selectionCallback();
+        }
+        touchStartInfo = null; // Reset for next touch
     });
 
-    // A regular click for non-touch devices (desktop)
     wrapper.addEventListener('click', (e) => {
         if (!isTouchDevice) {
             selectionCallback();
