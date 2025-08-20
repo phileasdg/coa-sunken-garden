@@ -151,8 +151,32 @@ input:checked + .slider:before { transform: translateX(18px); }
 .legend-color-swatch { width: 12px; height: 12px; border-radius: 50%; margin-right: 10px; flex-shrink: 0; border: 1px solid rgba(0, 0, 0, 0.1); }
 
 /* Info Panel Styling */
-#plant-info { transform: translateX(100%); opacity: 0; pointer-events: none; transition: all 0.3s ease; }
+#plant-info { 
+    transform: translateX(100%); 
+    opacity: 0; 
+    pointer-events: none; 
+    transition: all 0.3s ease; 
+}
 #plant-info.visible { transform: translateX(0); opacity: 1; pointer-events: auto; }
+
+#plant-info::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 30px;
+    background: linear-gradient(to top, rgba(245, 245, 220, 1), rgba(245, 245, 220, 0));
+    pointer-events: none;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+#plant-info.is-scrollable::after {
+    opacity: 1;
+}
+
 .info-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(139, 125, 107, 0.2); margin-bottom: 16px; }
 #plant-info h3 { color: #5d5547; margin: 0; padding-bottom: 8px; flex-grow: 1; }
 #plant-info .common-name-native { font-size: 0.9rem; color: #8b7d6b; font-style: italic; }
@@ -383,8 +407,8 @@ body.plants-hidden .plant-node { display: none; }
   #legend-toggle { right: 24px; }
   #legend {
     right: 24px;
-    left: auto;
-    max-width: 250px;
+    left: 24px;
+    max-width: none;
   }
   #legend.mobile-hidden {
     transform: translateX(calc(100% + 32px));
@@ -398,7 +422,10 @@ body.plants-hidden .plant-node { display: none; }
     left: 24px; right: 24px; max-width: none;
   }
   #plant-info { 
-    left: 24px; right: 24px; max-width: none; max-height: 50vh; 
+    left: 24px; 
+    right: 24px; 
+    max-width: none; 
+    max-height: calc(100vh - 120px);
   }
   .modal {
     padding: 24px;
@@ -536,7 +563,7 @@ body.plants-hidden .plant-node { display: none; }
       <div id="about-modal" class="modal">
           <h2>About this Map</h2>
           <p>This interactive map was created by Phileas Dazeley-Gaist (COA '23) on a whim as a passion project. It's designed to encourage people to connect with the plant life in the COA Sunken Garden and celebrate the beauty of this unique space.</p>
-          <p>The map and initial plant labels are based on the <a href="https://www.coa.edu/live/files/841-appendix-1-sunken-garden-brochure-pdf" target="_blank">Sunken Garden Brochure</a>. The detailed plant information was sourced from Yaniv Korman's beautifully illustrated booklet.</p>
+          <p>The map and initial plant labels are based on the <a href="https://www.coa.edu/live/files/841-appendix-1-sunken-garden-brochure-pdf" target="_blank">Sunken Garden Brochure</a>. The detailed plant information was sourced from Yaniv Korman's charmingly and lovingly edited Edible Plant List of the Sunken Garden booklet.</p>
           <p>If you find this map useful or inspiring, please consider supporting its continued development or checking out more of my work below.</p>
           <a href="https://phileasdg.github.io/" target="_blank" class="modal-button">Personal Blog</a>
           <a href="https://www.paypal.com/donate/?business=K74DYULZRHZ2J&no_recurring=0&item_name=Buy+me+a+coffee+%3AD&currency_code=USD" target="_blank" id="donate-button" class="modal-button" style="margin-top: 12px;">Buy me a coffee</a>
@@ -970,6 +997,7 @@ function selectPlant(species) {
       detailsContainer.innerHTML = `<p class="info-content">Detailed information for <strong>${species}</strong> could not be found.</p>`;
     }
     document.getElementById('plant-info').classList.add('visible');
+    updateScrollIndicator('plant-info', 'plant-info-details');
   }
 }
 
@@ -1113,6 +1141,7 @@ function updatePathNodePanelContent(nodeId) {
 
     createSpeciesList('Close Companions (within 10ft)', nearbyPlants.close);
     createSpeciesList('Distant Neighbors (10-20ft)', nearbyPlants.far, 'distant-neighbors-label');
+    updateScrollIndicator('plant-info', 'plant-info-details');
 }
 
 function clearSelections() {
@@ -1125,7 +1154,7 @@ function clearSelections() {
   radiusDisks.forEach(disk => disk.remove());
   radiusDisks = [];
 
-  document.getElementById('plant-info').classList.remove('visible');
+  document.getElementById('plant-info').classList.remove('visible', 'is-scrollable');
   document.getElementById('legend').classList.remove('hidden');
 }
 
@@ -1179,7 +1208,9 @@ const monthOrder = {
 };
 
 function getSortValues(range) {
-    if (!range) return { start: 99, end: 99 };
+    if (!range || typeof range !== 'string' || range.length === 0) {
+        return { start: 99, end: 99 };
+    }
     const months = range.split('-').map(m => m.trim());
     const start = monthOrder[months[0]] || 99;
     const end = monthOrder[months[months.length - 1]] || start;
@@ -1511,6 +1542,20 @@ function setupMap() {
             centerView();
         }
     };
+}
+
+function updateScrollIndicator(panelId, contentId) {
+    const panel = document.getElementById(panelId);
+    const content = document.getElementById(contentId);
+    if (!panel || !content) return;
+    
+    setTimeout(() => {
+        if (content.scrollHeight > content.clientHeight) {
+            panel.classList.add('is-scrollable');
+        } else {
+            panel.classList.remove('is-scrollable');
+        }
+    }, 150);
 }
 
 
