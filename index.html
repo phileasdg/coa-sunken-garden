@@ -609,7 +609,7 @@ body.plants-hidden .node-wrapper.plant-type { display: none; }
           <p>The map and initial plant labels are based on the <a href="https://www.coa.edu/live/files/841-appendix-1-sunken-garden-brochure-pdf" target="_blank">Sunken Garden Brochure</a>. The detailed plant information was sourced from Yaniv Korman's charmingly and lovingly edited Edible Plant List of the Sunken Garden booklet.</p>
           <p>If you find this map useful or inspiring, please consider supporting its continued development or checking out more of my work below.</p>
           <a href="https://phileasdg.github.io/" target="_blank" class="modal-button">Personal Blog</a>
-          <a href="https://www.paypal.com/donate/?business=K74DYULZRHZ2J&no_recurring=0&item_name=Buy+me+a+coffee+%3AD&currency_code=USD" target="_blank" id="donate-button" class="modal-button" style="margin-top: 12px;">Buy me a coffee</a>
+          <a href="https://www.paypal.com/donate/?business=K74DYULZRHZ2J&no_recurring=0&item_name=Buy+me+a+coffee+%3AD&currency_code=EUR" target="_blank" id="donate-button" class="modal-button" style="margin-top: 12px;">Buy me a coffee</a>
           <button id="close-about" class="modal-button" style="background-color: #6b6355; margin-top: 12px;">Close</button>
       </div>
   </div>
@@ -635,6 +635,7 @@ let dynamicColorMaps = {};
 let radiusDisks = []; // To hold the visual radius disks
 let selectedNetworkNodeId = null; // Track selected path node
 let wasLegendMaximized = false; // Track legend state before opening info panel
+let wasLegendMaximizedForMenu = false; // Track legend state for mobile menu
 
 // DOM element collections
 const plantNodes = [];
@@ -876,14 +877,7 @@ function createPlantNodes() {
       node.className = 'plant-node';
       node.title = species;
 
-      wrapper.addEventListener('click', (e) => {
-        e.stopPropagation();
-        selectPlant(species, true);
-      });
-      wrapper.addEventListener('touchstart', (e) => {
-        e.stopPropagation();
-        selectPlant(species, true);
-      });
+      addNodeEventListeners(wrapper, () => selectPlant(species, true));
       
       wrapper.appendChild(node);
       canvas.appendChild(wrapper);
@@ -911,20 +905,53 @@ function createNetworkNodes() {
     node.className = 'network-node';
     node.title = `Network Node ${vertexNum}`;
 
-    wrapper.addEventListener('click', (e) => {
-      e.stopPropagation();
-      selectNetworkNode(vertexNum);
-    });
-    wrapper.addEventListener('touchstart', (e) => {
-      e.stopPropagation();
-      selectNetworkNode(vertexNum);
-    });
+    addNodeEventListeners(wrapper, () => selectNetworkNode(vertexNum));
     
     wrapper.appendChild(node);
     canvas.appendChild(wrapper);
     networkNodes.push({ element: node, wrapper: wrapper, nodeId: vertexNum, x, y });
   });
 }
+
+function addNodeEventListeners(wrapper, selectionCallback) {
+    let touchStart = null;
+    const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+    // On touch start, record position but do nothing else. Allow event to bubble for panning.
+    wrapper.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+            touchStart = {
+                x: e.touches[0].clientX,
+                y: e.touches[0].clientY
+            };
+        }
+    }, { passive: true });
+
+    // On touch end, check if it was a tap or a pan.
+    wrapper.addEventListener('touchend', (e) => {
+        if (touchStart && e.changedTouches.length === 1) {
+            const touchEnd = {
+                x: e.changedTouches[0].clientX,
+                y: e.changedTouches[0].clientY
+            };
+            const distance = Math.hypot(touchEnd.x - touchStart.x, touchEnd.y - touchStart.y);
+
+            if (distance < 10) { // Threshold for what's considered a tap
+                e.preventDefault(); // Important: prevents the browser from firing a 'click' event after this
+                selectionCallback();
+            }
+        }
+        touchStart = null; // Reset for next touch
+    });
+
+    // A regular click for non-touch devices (desktop)
+    wrapper.addEventListener('click', (e) => {
+        if (!isTouchDevice) {
+            selectionCallback();
+        }
+    });
+}
+
 
 function createConnections() {
   const canvas = document.getElementById('garden-canvas');
@@ -1784,9 +1811,16 @@ document.addEventListener('DOMContentLoaded', () => {
   
   mobileMenuToggle.onclick = () => {
       document.body.classList.toggle('menu-open');
-      // If the menu is now open, minify the legend to save space
       if (document.body.classList.contains('menu-open')) {
+          // Menu is opening
+          wasLegendMaximizedForMenu = !legend.classList.contains('minified');
           legend.classList.add('minified');
+      } else {
+          // Menu is closing
+          if (wasLegendMaximizedForMenu) {
+              legend.classList.remove('minified');
+          }
+          wasLegendMaximizedForMenu = false; // Reset state
       }
   };
 
