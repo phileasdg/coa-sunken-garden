@@ -32,7 +32,7 @@ body {
 }
 
 #header-container { top: 24px; left: 24px; max-width: 320px; z-index: 102; }
-#legend { top: 24px; right: 24px; max-width: 220px; max-height: calc(100vh - 48px); overflow-y: auto; z-index: 100; transition: all 0.3s ease; }
+#legend { top: 24px; right: 24px; max-width: 220px; max-height: calc(100vh - 48px); overflow-y: auto; z-index: 102; transition: all 0.3s ease; }
 #search-container { bottom: 24px; left: 24px; min-width: 300px; padding: 12px; z-index: 101; }
 #plant-info { top: 24px; right: 24px; max-width: 350px; max-height: calc(100vh - 48px); overflow-y: auto; z-index: 103; }
 
@@ -178,7 +178,7 @@ input:checked + .slider:before { transform: translateX(18px); }
 }
 
 .info-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(139, 125, 107, 0.2); margin-bottom: 16px; }
-#plant-info h3 { color: #5d5547; margin: 0; padding-bottom: 8px; flex-grow: 1; }
+#plant-info h3 { color: #5d5547; margin: 0; padding-bottom: 8px; flex-grow: 1; display: flex; align-items: center; }
 #plant-info .common-name-native { font-size: 0.9rem; color: #8b7d6b; font-style: italic; }
 #plant-info .latin-name { font-family: 'Crimson Text', serif; font-style: italic; font-size: 1rem; color: #8b7d6b; margin-top: -4px; margin-bottom: 8px; }
 .info-close-btn { background: transparent; border: none; cursor: pointer; padding: 0; width: 24px; height: 24px; flex-shrink: 0; margin-left: 16px; }
@@ -382,6 +382,7 @@ body.plants-hidden .plant-node { display: none; }
     border-right: 1px solid rgba(139, 125, 107, 0.2);
     transform: translateX(-100%);
     transition: transform 0.3s ease-in-out;
+    z-index: 103;
   }
   #header-container.menu-open #header-content {
     transform: translateX(0);
@@ -397,18 +398,24 @@ body.plants-hidden .plant-node { display: none; }
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     padding: 10px;
     cursor: pointer;
-    z-index: 103;
     transition: transform 0.1s ease;
   }
-  #mobile-menu-toggle:active, #legend-toggle:active {
-      transform: scale(0.9);
+  #mobile-menu-toggle { 
+    left: 24px; 
+    z-index: 101;
   }
-  #mobile-menu-toggle { left: 24px; }
-  #legend-toggle { right: 24px; }
+  #header-container.menu-open + #mobile-menu-toggle {
+      z-index: 103;
+  }
+  #legend-toggle { 
+    right: 24px; 
+    z-index: 103;
+  }
   #legend {
     right: 24px;
-    left: 24px;
-    max-width: none;
+    left: auto;
+    max-width: calc(100% - 96px); /* Prevent overlap with menu button */
+    max-height: calc(100vh - 110px); /* Prevent overlap with search bar */
   }
   #legend.mobile-hidden {
     transform: translateX(calc(100% + 32px));
@@ -425,7 +432,7 @@ body.plants-hidden .plant-node { display: none; }
     left: 24px; 
     right: 24px; 
     max-width: none; 
-    max-height: calc(100vh - 120px);
+    max-height: calc(100vh - 110px); /* Prevent overlap with search bar */
   }
   .modal {
     padding: 24px;
@@ -566,7 +573,7 @@ body.plants-hidden .plant-node { display: none; }
           <p>The map and initial plant labels are based on the <a href="https://www.coa.edu/live/files/841-appendix-1-sunken-garden-brochure-pdf" target="_blank">Sunken Garden Brochure</a>. The detailed plant information was sourced from Yaniv Korman's charmingly and lovingly edited Edible Plant List of the Sunken Garden booklet.</p>
           <p>If you find this map useful or inspiring, please consider supporting its continued development or checking out more of my work below.</p>
           <a href="https://phileasdg.github.io/" target="_blank" class="modal-button">Personal Blog</a>
-          <a href="https://www.paypal.com/donate/?business=K74DYULZRHZ2J&no_recurring=0&item_name=Buy+me+a+coffee+%3AD&currency_code=USD" target="_blank" id="donate-button" class="modal-button" style="margin-top: 12px;">Buy me a coffee</a>
+          <a href="https://www.paypal.com/donate/?business=K74DYULZ2J&no_recurring=0&item_name=Buy+me+a+coffee+%3AD&currency_code=USD" target="_blank" id="donate-button" class="modal-button" style="margin-top: 12px;">Buy me a coffee</a>
           <button id="close-about" class="modal-button" style="background-color: #6b6355; margin-top: 12px;">Close</button>
       </div>
   </div>
@@ -590,6 +597,7 @@ let speciesColorMap = {};
 let dynamicColorMaps = {};
 let radiusDisks = []; // To hold the visual radius disks
 let selectedNetworkNodeId = null; // Track selected path node
+let wasLegendVisible = false; // Track legend state before opening info panel
 
 // DOM element collections
 const plantNodes = [];
@@ -829,11 +837,11 @@ function createPlantNodes() {
       node.title = species;
       node.addEventListener('click', (e) => {
         e.stopPropagation();
-        selectPlant(species);
+        selectPlant(species, true);
       });
       node.addEventListener('touchstart', (e) => {
         e.stopPropagation();
-        selectPlant(species);
+        selectPlant(species, true);
       });
       
       canvas.appendChild(node);
@@ -904,102 +912,163 @@ function createConnections() {
   });
 }
 
+function hideLegend() {
+    const legend = document.getElementById('legend');
+    wasLegendVisible = !legend.classList.contains('hidden') && !legend.classList.contains('mobile-hidden');
+    legend.classList.add('hidden');
+}
+
 // Selection handlers
-function selectPlant(species) {
-  if (colorByKey !== 'species') {
-    const plantInfoEntry = Object.entries(plantData).find(([commonName, data]) => 
-        commonName.toLowerCase() === species.toLowerCase() || 
-        (data.latin_name && data.latin_name.toLowerCase() === species.toLowerCase())
-    );
-    const info = plantInfoEntry ? plantInfoEntry[1] : null;
-    if (!info) {
-        highlightFromLegend('uncolored', 'uncolored');
-        return;
+function selectPlant(species, isNodeClick = false) {
+  // If coloring by category and a node is clicked, show the category panel first.
+  if (colorByKey !== 'species' && isNodeClick) {
+    displayCategoryPanel(species);
+    return;
+  }
+
+  // Original logic to display species-specific info
+  clearSelections();
+  hideLegend();
+
+  const plantInfoEntry = Object.entries(plantData).find(([commonName, data]) => 
+      commonName.toLowerCase() === species.toLowerCase() || 
+      (data.latin_name && data.latin_name.toLowerCase() === species.toLowerCase())
+  );
+
+  const info = plantInfoEntry ? plantInfoEntry[1] : null;
+  const commonName = plantInfoEntry ? plantInfoEntry[0] : species;
+
+  const detailsContainer = document.getElementById('plant-info-details');
+  const nameEl = document.getElementById('plant-name');
+  detailsContainer.innerHTML = '';
+
+  if (info) {
+    nameEl.innerHTML = `${commonName} ${info.native ? '<span class="common-name-native">(Native)</span>' : ''}`;
+    
+    const createInfoGridItem = (label, value, icon) => {
+        if (!value) return '';
+        return `
+            <div class="info-item">
+                ${icon}
+                <div class="info-item-text">
+                    <div class="info-label">${label}</div>
+                    <div class="info-content">${value}</div>
+                </div>
+            </div>
+        `;
     };
 
-    const value = info[colorByKey];
-    if (value !== undefined && value !== null) {
-        highlightFromLegend(colorByKey, value);
-    } else {
-        highlightFromLegend('uncolored', 'uncolored');
+    const createInfoSection = (title, content) => {
+        if (!content) return '';
+        return `
+            <div class="info-section">
+                <h4>${title}</h4>
+                <p class="info-content">${content}</p>
+            </div>
+        `;
+    };
+
+    let detailsHTML = `<div class="latin-name">${info.latin_name || 'N/A'}</div>`;
+    
+    detailsHTML += '<div class="info-grid">';
+    detailsHTML += createInfoGridItem('Sun', info.sun, ICONS.sun);
+    detailsHTML += createInfoGridItem('Water', info.water, ICONS.water);
+    detailsHTML += createInfoGridItem('Height', info.height, ICONS.height);
+    detailsHTML += createInfoGridItem('Spread', info.spread, ICONS.spread);
+    detailsHTML += createInfoGridItem('Blooms', info.blooming_time, ICONS.bloom);
+    detailsHTML += createInfoGridItem('Harvest', info.harvest_time, ICONS.harvest);
+    detailsHTML += '</div>';
+
+    detailsHTML += createInfoSection('Edible Use', info.edible_use);
+    detailsHTML += createInfoSection('Medicinal Use', info.medicinal_use);
+    detailsHTML += createInfoSection('Other Uses', info.other_use);
+    
+    if (info.toxicity) {
+        detailsHTML += createInfoSection('Toxicity', info.toxicity);
     }
+
+    detailsContainer.innerHTML = detailsHTML;
+    
+    plantNodes.forEach(node => {
+      if (node.species === species) {
+        node.element.classList.add('selected');
+      }
+    });
   } else {
-    // This is the original code for species selection
+    nameEl.textContent = 'Data Not Found';
+    detailsContainer.innerHTML = `<p class="info-content">Detailed information for <strong>${species}</strong> could not be found.</p>`;
+  }
+  document.getElementById('plant-info').classList.add('visible');
+  updateScrollIndicator('plant-info', 'plant-info-details');
+}
+
+function displayCategoryPanel(species) {
     clearSelections();
-    document.getElementById('legend').classList.add('hidden');
+    hideLegend();
 
-    const plantInfoEntry = Object.entries(plantData).find(([commonName, data]) => 
-        commonName.toLowerCase() === species.toLowerCase() || 
-        (data.latin_name && data.latin_name.toLowerCase() === species.toLowerCase())
+    const plantInfoEntry = Object.entries(plantData).find(([cn, d]) => 
+        cn.toLowerCase() === species.toLowerCase() || (d.latin_name && d.latin_name.toLowerCase() === species.toLowerCase())
     );
+    
+    if (!plantInfoEntry) return;
 
-    const info = plantInfoEntry ? plantInfoEntry[1] : null;
-    const commonName = plantInfoEntry ? plantInfoEntry[0] : species;
+    const info = plantInfoEntry[1];
+    const categoryValue = info[colorByKey];
+
+    if (categoryValue === undefined || categoryValue === null) {
+        selectPlant(species, false); // Fallback to species view if no data for this category
+        return;
+    }
+
+    highlightFromLegend(colorByKey, categoryValue);
 
     const detailsContainer = document.getElementById('plant-info-details');
     const nameEl = document.getElementById('plant-name');
-    detailsContainer.innerHTML = '';
+    const select = document.getElementById('color-by-select');
+    const categoryName = select.options[select.selectedIndex].text;
+    const categoryColor = dynamicColorMaps[colorByKey][categoryValue];
 
-    if (info) {
-      nameEl.innerHTML = `${commonName} ${info.native ? '<span class="common-name-native">(Native)</span>' : ''}`;
-      
-      const createInfoGridItem = (label, value, icon) => {
-          if (!value) return '';
-          return `
-              <div class="info-item">
-                  ${icon}
-                  <div class="info-item-text">
-                      <div class="info-label">${label}</div>
-                      <div class="info-content">${value}</div>
-                  </div>
-              </div>
-          `;
-      };
+    const swatchHTML = `<div class="plant-node" style="background-color: ${categoryColor}; position: relative; left: auto; top: auto; display: inline-block; vertical-align: middle; margin-right: 12px; transform: none; flex-shrink: 0;"></div>`;
+    nameEl.innerHTML = `${swatchHTML}<span>${categoryName}: ${categoryValue}</span>`;
 
-      const createInfoSection = (title, content) => {
-          if (!content) return '';
-          return `
-              <div class="info-section">
-                  <h4>${title}</h4>
-                  <p class="info-content">${content}</p>
-              </div>
-          `;
-      };
-
-      let detailsHTML = `<div class="latin-name">${info.latin_name || 'N/A'}</div>`;
-      
-      detailsHTML += '<div class="info-grid">';
-      detailsHTML += createInfoGridItem('Sun', info.sun, ICONS.sun);
-      detailsHTML += createInfoGridItem('Water', info.water, ICONS.water);
-      detailsHTML += createInfoGridItem('Height', info.height, ICONS.height);
-      detailsHTML += createInfoGridItem('Spread', info.spread, ICONS.spread);
-      detailsHTML += createInfoGridItem('Blooms', info.blooming_time, ICONS.bloom);
-      detailsHTML += createInfoGridItem('Harvest', info.harvest_time, ICONS.harvest);
-      detailsHTML += '</div>';
-
-      detailsHTML += createInfoSection('Edible Use', info.edible_use);
-      detailsHTML += createInfoSection('Medicinal Use', info.medicinal_use);
-      detailsHTML += createInfoSection('Other Uses', info.other_use);
-      
-      if (info.toxicity) {
-          detailsHTML += createInfoSection('Toxicity', info.toxicity);
-      }
-
-      detailsContainer.innerHTML = detailsHTML;
-      
-      plantNodes.forEach(node => {
-        if (node.species === species) {
-          node.element.classList.add('selected');
+    let detailsHTML = `
+        <div class="info-content" style="margin-bottom: 16px;">
+            You selected <strong>${species}</strong>.
+        </div>
+        <button class="control-btn" id="view-species-details" style="margin-bottom: 20px;">View Details for ${species}</button>
+        <div class="info-label">Other plants in this category:</div>
+        <ul class="nearby-species-list">
+    `;
+    
+    const otherPlants = [];
+    Object.entries(plantData).forEach(([commonName, data]) => {
+        if (String(data[colorByKey]) === String(categoryValue) && commonName !== species) {
+            otherPlants.push(commonName);
         }
-      });
+    });
+
+    if (otherPlants.length > 0) {
+        otherPlants.sort().forEach(plantName => {
+            detailsHTML += `<li data-species="${plantName}">${plantName}</li>`;
+        });
     } else {
-      nameEl.textContent = 'Data Not Found';
-      detailsContainer.innerHTML = `<p class="info-content">Detailed information for <strong>${species}</strong> could not be found.</p>`;
+        detailsHTML += `<li>None</li>`;
     }
+    
+    detailsHTML += '</ul>';
+    detailsContainer.innerHTML = detailsHTML;
+
+    document.getElementById('view-species-details').onclick = () => {
+        selectPlant(species, false);
+    };
+    detailsContainer.querySelectorAll('.nearby-species-list li[data-species]').forEach(li => {
+        li.onclick = () => selectPlant(li.dataset.species, true);
+    });
+
     document.getElementById('plant-info').classList.add('visible');
     updateScrollIndicator('plant-info', 'plant-info-details');
-  }
 }
+
 
 // Helper function to find nearby plants
 function findNearbyPlants(nodePos) {
@@ -1038,8 +1107,8 @@ function findNearbyPlants(nodePos) {
 
 function selectNetworkNode(nodeId) {
   clearSelections();
+  hideLegend();
   selectedNetworkNodeId = nodeId;
-  document.getElementById('legend').classList.add('hidden');
   
   const canvas = document.getElementById('garden-canvas');
   const nodePos = networkPositions[nodeId.toString()];
@@ -1132,7 +1201,7 @@ function updatePathNodePanelContent(nodeId) {
                 speciesText.textContent = plant.species;
                 item.appendChild(nodeSwatch);
                 item.appendChild(speciesText);
-                item.onclick = () => selectPlant(plant.species);
+                item.onclick = () => selectPlant(plant.species, false); // Go direct to species info from here
                 list.appendChild(item);
             });
             detailsContainer.appendChild(list);
@@ -1155,7 +1224,11 @@ function clearSelections() {
   radiusDisks = [];
 
   document.getElementById('plant-info').classList.remove('visible', 'is-scrollable');
-  document.getElementById('legend').classList.remove('hidden');
+  
+  if (wasLegendVisible) {
+      document.getElementById('legend').classList.remove('hidden');
+  }
+  wasLegendVisible = false; // Reset for next time
 }
 
 // Search functionality
@@ -1178,7 +1251,7 @@ function setupSearch() {
         item.className = 'search-result-item';
         item.textContent = species;
         item.addEventListener('click', () => {
-            selectPlant(species);
+            selectPlant(species, false); // Go direct to species info from search
             searchInput.value = '';
             resultsContainer.innerHTML = '';
 
