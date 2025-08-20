@@ -608,6 +608,7 @@ let edgeList = [];
 let networkPositions = {};
 let plantLabels = {};
 let plantData = {};
+let searchablePlants = [];
 
 // UI state
 let scale = 1;
@@ -1057,14 +1058,12 @@ function displayCategoryPanel(species) {
     const categoryName = select.options[select.selectedIndex].text;
     const categoryColor = dynamicColorMaps[colorByKey][categoryValue];
     
-    const selectedPlantLatinName = info.latin_name || '';
-
     const swatchHTML = `<div class="plant-node" style="background-color: ${categoryColor}; position: relative; left: auto; top: auto; display: inline-block; vertical-align: middle; margin-right: 12px; transform: none; flex-shrink: 0;"></div>`;
     nameEl.innerHTML = `${swatchHTML}<span>${categoryName}: ${categoryValue}</span>`;
 
     let detailsHTML = `
         <div class="info-content" style="margin-bottom: 16px;">
-            You selected <span class="latin-name">${species}</span>.
+            You selected <strong>${species}</strong>.
         </div>
         <button class="control-btn" id="view-species-details" style="margin-bottom: 20px;">View Details for ${species}</button>
         <div class="info-label">Other plants in this category:</div>
@@ -1080,7 +1079,9 @@ function displayCategoryPanel(species) {
 
     if (otherPlants.length > 0) {
         otherPlants.sort().forEach(plantName => {
-            detailsHTML += `<li data-species="${plantName}">${plantName}</li>`;
+            const otherPlantInfo = plantData[plantName];
+            const latinTitle = otherPlantInfo?.latin_name ? `title="${otherPlantInfo.latin_name}"` : '';
+            detailsHTML += `<li data-species="${plantName}" ${latinTitle}>${plantName}</li>`;
         });
     } else {
         detailsHTML += `<li>None</li>`;
@@ -1275,20 +1276,20 @@ function setupSearch() {
 
     if (!query) return;
     
-    const matchedSpecies = Object.keys(plantLabels).filter(species => 
-      species.toLowerCase().includes(query)
+    const matchedPlants = searchablePlants.filter(({ commonName, latinName }) =>
+        commonName.toLowerCase().includes(query) || latinName.toLowerCase().includes(query)
     );
     
-    matchedSpecies.forEach(species => {
+    matchedPlants.forEach(({ commonName }) => {
         const item = document.createElement('div');
         item.className = 'search-result-item';
-        item.textContent = species;
+        item.textContent = commonName;
         item.addEventListener('click', () => {
-            selectPlant(species, false); // Go direct to species info from search
+            selectPlant(commonName, false); // Go direct to species info from search
             searchInput.value = '';
             resultsContainer.innerHTML = '';
 
-            const firstPosition = plantLabels[species][0];
+            const firstPosition = plantLabels[commonName][0];
             if (firstPosition) {
                 const [x, y] = firstPosition;
                 translateX = window.innerWidth / 2 - x * scale;
@@ -1673,6 +1674,11 @@ function updateScrollIndicator(panelId, contentId) {
 // Initialize everything
 function initializeVisualization() {
   console.log('Initializing visualization...');
+
+  searchablePlants = Object.entries(plantData).map(([common, data]) => ({
+    commonName: common,
+    latinName: data.latin_name || ''
+  }));
   
   populateColorDropdown();
   generateSpeciesColors();
