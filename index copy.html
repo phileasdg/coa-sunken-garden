@@ -32,7 +32,7 @@ body {
 }
 
 #header-container { top: 24px; left: 24px; max-width: 320px; z-index: 102; }
-#legend { top: 24px; right: 24px; max-width: 220px; max-height: calc(100vh - 48px); overflow-y: auto; z-index: 100; transition: all 0.3s ease; }
+#legend { top: 24px; right: 24px; max-width: 220px; max-height: calc(100vh - 48px); overflow-y: auto; z-index: 100; transition: transform 0.3s ease, opacity 0.3s ease; }
 #search-container { bottom: 24px; left: 24px; min-width: 300px; padding: 12px; z-index: 101; }
 #plant-info { top: 24px; right: 24px; max-width: 350px; max-height: calc(100vh - 48px); overflow-y: auto; z-index: 103; }
 
@@ -133,18 +133,9 @@ input:checked + .slider:before { transform: translateX(18px); }
 
 /* Legend Styling */
 #legend.hidden { opacity: 0; pointer-events: none; transform: translateX(20px); }
-#legend.multi-column { max-width: 400px; }
-#legend.multi-column #legend-items { column-count: 2; column-gap: 24px; }
-.legend-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(139, 125, 107, 0.2); margin-bottom: 12px; padding-bottom: 8px; }
-#legend h3 { margin: 0; font-size: 1rem; font-weight: 500; color: #5d5547; }
-#legend-minify-toggle { background: none; border: none; cursor: pointer; padding: 4px; }
-#legend-minify-toggle svg { width: 16px; height: 16px; stroke: #9c8f7d; transition: all 0.2s ease; }
-#legend-minify-toggle:hover svg { stroke: #5d5547; }
-#legend.minified #legend-minify-toggle svg { transform: rotate(180deg); }
-#legend.minified { max-height: 50px; width: auto; min-width: 150px; padding: 12px 20px; overflow: hidden; }
-#legend.minified .legend-header { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
-#legend.minified h3 { padding-bottom: 0; }
-#legend.minified #legend-items { display: none; }
+#legend.species-mode { max-width: 400px; }
+#legend.species-mode #legend-items { column-count: 2; column-gap: 24px; }
+#legend h3 { margin: 0 0 12px 0; font-size: 1rem; font-weight: 500; color: #5d5547; border-bottom: 1px solid rgba(139, 125, 107, 0.2); padding-bottom: 8px; }
 .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.85rem; color: #6b6355; cursor: pointer; transition: color 0.2s ease; break-inside: avoid; }
 .legend-item:hover { color: #3b372f; }
 .legend-color-swatch { width: 12px; height: 12px; border-radius: 50%; margin-right: 10px; flex-shrink: 0; border: 1px solid rgba(0, 0, 0, 0.1); }
@@ -154,17 +145,9 @@ input:checked + .slider:before { transform: translateX(18px); }
 #plant-info.visible { transform: translateX(0); opacity: 1; pointer-events: auto; }
 .info-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(139, 125, 107, 0.2); margin-bottom: 16px; }
 #plant-info h3 { color: #5d5547; margin: 0; padding-bottom: 8px; flex-grow: 1; }
-#plant-info .common-name-native { font-size: 0.9rem; color: #8b7d6b; font-style: italic; }
-#plant-info .latin-name { font-family: 'Crimson Text', serif; font-style: italic; font-size: 1rem; color: #8b7d6b; margin-top: -4px; margin-bottom: 8px; }
 .info-close-btn { background: transparent; border: none; cursor: pointer; padding: 0; width: 24px; height: 24px; flex-shrink: 0; margin-left: 16px; }
 .info-close-btn svg { width: 100%; height: 100%; stroke: #9c8f7d; transition: stroke 0.2s ease; }
 .info-close-btn:hover svg { stroke: #5d5547; }
-.info-section h4 { font-size: 1rem; font-weight: 600; color: #5d5547; margin: 16px 0 8px 0; border-bottom: 1px solid rgba(139, 125, 107, 0.1); padding-bottom: 4px; }
-.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 16px; margin-bottom: 12px; }
-.info-item { display: flex; align-items: center; gap: 8px; }
-.info-item-icon { width: 20px; height: 20px; flex-shrink: 0; stroke: #8b7d6b; fill: none; stroke-width: 1.5; }
-.info-item-text .info-label { font-size: 0.8rem; color: #8b7d6b; margin: 0; }
-.info-item-text .info-content { font-size: 0.9rem; color: #6b6355; margin: 0; }
 .info-label { color: #8b7d6b; font-weight: 500; margin-bottom: 4px; }
 .info-label.distant-neighbors-label { margin-top: 16px; }
 .info-content { color: #6b6355; margin-bottom: 12px; }
@@ -221,11 +204,7 @@ body.paths-hidden .network-node, body.paths-hidden .connection-line { display: n
 
 .plant-node {
   position: absolute; width: 15px; height: 15px; border: 3px solid rgba(74, 68, 58, 0.4); box-shadow: 0 0 8px rgba(0,0,0,0.3); transform: translate(-50%, -50%); border-radius: 50%; cursor: pointer; transition: all 0.3s ease; z-index: 10;
-}
-.plant-node.uncolored {
-    background-color: rgba(74, 68, 58, 0.1);
-    border-color: rgba(74, 68, 58, 0.2);
-    opacity: 0.7;
+  background-color: #a9a9a9; /* Default color */
 }
 .plant-node:active {
     transform: translate(-50%, -50%) scale(1.3);
@@ -249,12 +228,12 @@ body.plants-hidden .plant-node { display: none; }
   transform: translate(-50%, -50%);
 }
 .radius-disk.close {
-  background: rgba(102, 153, 102, 0.2);
-  border: 2px solid rgba(102, 153, 102, 0.5);
+  background: rgba(189, 183, 107, 0.25);
+  border: 2px solid rgba(189, 183, 107, 0.7);
 }
 .radius-disk.far {
-  background: rgba(102, 153, 102, 0.1);
-  border: 2px solid rgba(102, 153, 102, 0.4);
+  background: rgba(189, 183, 107, 0.2);
+  border: 2px solid rgba(189, 183, 107, 0.6);
 }
 
 /* Tutorial & About Modals */
@@ -390,7 +369,7 @@ body.plants-hidden .plant-node { display: none; }
     opacity: 0;
     pointer-events: none;
   }
-  #legend.multi-column #legend-items {
+  #legend.species-mode #legend-items {
       column-count: 1;
   }
   #search-container {
@@ -486,12 +465,7 @@ body.plants-hidden .plant-node { display: none; }
   </button>
 
   <div id="legend">
-    <div class="legend-header">
-        <h3>Legend</h3>
-        <button id="legend-minify-toggle">
-            <svg viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>
-        </button>
-    </div>
+    <h3>Legend</h3>
     <div id="legend-items"></div>
   </div>
   <div id="search-container">
@@ -535,10 +509,9 @@ body.plants-hidden .plant-node { display: none; }
       <div id="about-modal" class="modal">
           <h2>About this Map</h2>
           <p>This interactive map was created by Phileas Dazeley-Gaist (COA '23) on a whim as a passion project. It's designed to encourage people to connect with the plant life in the COA Sunken Garden and celebrate the beauty of this unique space.</p>
-          <p>The map and initial plant labels are based on the <a href="https://www.coa.edu/live/files/841-appendix-1-sunken-garden-brochure-pdf" target="_blank">Sunken Garden Brochure</a>. The detailed plant information was sourced from Yaniv Korman's beautifully illustrated booklet.</p>
           <p>If you find this map useful or inspiring, please consider supporting its continued development or checking out more of my work below.</p>
           <a href="https://phileasdg.github.io/" target="_blank" class="modal-button">Personal Blog</a>
-          <a href="https://www.paypal.com/donate/?business=K74DYULZRHZ2J&no_recurring=0&item_name=Buy+me+a+coffee+%3AD&currency_code=USD" target="_blank" id="donate-button" class="modal-button" style="margin-top: 12px;">Buy me a coffee</a>
+          <a href="https://www.buymeacoffee.com/yourlink" target="_blank" id="donate-button" class="modal-button" style="margin-top: 12px;">Buy me a coffee</a>
           <button id="close-about" class="modal-button" style="background-color: #6b6355; margin-top: 12px;">Close</button>
       </div>
   </div>
@@ -561,7 +534,6 @@ let colorByKey = 'species';
 let speciesColorMap = {};
 let dynamicColorMaps = {};
 let radiusDisks = []; // To hold the visual radius disks
-let selectedNetworkNodeId = null; // Track selected path node
 
 // DOM element collections
 const plantNodes = [];
@@ -599,15 +571,6 @@ const pathMessages = {
     ]
 };
 
-const ICONS = {
-    sun: `<svg class="info-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>`,
-    water: `<svg class="info-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-3.87-7-13-7-13s-7 9.13-7 13a7 7 0 0 0 7 7z"></path></svg>`,
-    height: `<svg class="info-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V4m-4 4l4-4 4 4m-8 8l4 4 4-4"></path></svg>`,
-    spread: `<svg class="info-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16M8 8l-4 4 4 4m8-8l4 4-4 4"></path></svg>`,
-    bloom: `<svg class="info-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 0 1 3 3v0a3 3 0 0 1-6 0v0a3 3 0 0 1 3-3z"/><path d="M19 12a3 3 0 0 1-3 3h0a3 3 0 0 1 0-6h0a3 3 0 0 1 3 3z"/><path d="M12 19a3 3 0 0 1-3-3h0a3 3 0 0 1 6 0h0a3 3 0 0 1-3 3z"/><path d="M5 12a3 3 0 0 1 3-3h0a3 3 0 0 1 0 6h0a3 3 0 0 1-3-3z"/><circle cx="12" cy="12" r="1"/></svg>`,
-    harvest: `<svg class="info-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M8 8l4 4 4-4M8 14l4 4 4-4"/></svg>`
-};
-
 function getRandomMessage(messages) {
     const totalWeight = messages.reduce((sum, msg) => sum + msg.weight, 0);
     let random = Math.random() * totalWeight;
@@ -627,7 +590,7 @@ async function loadData() {
       fetch('./data/edge-list.json'),
       fetch('./data/vertex-positions.json'),
       fetch('./data/plant-labels.json'),
-      fetch('./data/plant-data.json') // This now fetches your detailed plant data
+      fetch('./data/plant-data.json')
     ]);
 
     if (!edgeResponse.ok || !positionsResponse.ok || !labelsResponse.ok || !dataResponse.ok) {
@@ -645,7 +608,6 @@ async function loadData() {
     console.error('Error loading JSON files (this is expected when running locally):', error);
     console.log('Loading fallback demo data...');
     
-    // Fallback data remains for local testing without a server
     edgeList = [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [1, 6], [2, 7], [3, 8], [4, 9], [5, 10]];
     networkPositions = {
       "1": [100, 100], "2": [200, 120], "3": [300, 100], "4": [400, 120], "5": [500, 100],
@@ -657,9 +619,9 @@ async function loadData() {
       "Demo Plant C": [[520, 150]]
     };
     plantData = {
-      "Demo Plant A": { latin_name: "Demo plantus a", category: "Shrubs", "Flowering Season": "Spring", benefits: "Demo benefits" },
-      "Demo Plant B": { latin_name: "Demo plantus b", category: "Perennials", "Soil Preference": "Moist, well-draining" },
-      "Demo Plant C": { latin_name: "Demo plantus c", category: "Trees", "Mature Height": "30-50 feet", care: "Demo care instructions" }
+      "Demo Plant A": { category: "Shrubs", "Flowering Season": "Spring", benefits: "Demo benefits" },
+      "Demo Plant B": { category: "Perennials", "Soil Preference": "Moist, well-draining" },
+      "Demo Plant C": { category: "Trees", "Mature Height": "30-50 feet", care: "Demo care instructions" }
     };
     
     console.log('Fallback data loaded successfully');
@@ -878,98 +840,41 @@ function createConnections() {
 
 // Selection handlers
 function selectPlant(species) {
-  if (colorByKey !== 'species') {
-    const plantInfoEntry = Object.entries(plantData).find(([commonName, data]) => 
-        commonName.toLowerCase() === species.toLowerCase() || 
-        (data.latin_name && data.latin_name.toLowerCase() === species.toLowerCase())
-    );
-    const info = plantInfoEntry ? plantInfoEntry[1] : null;
-    if (!info) {
-        highlightFromLegend('uncolored', 'uncolored');
-        return;
-    };
+  clearSelections();
+  document.getElementById('legend').classList.add('hidden');
+  const info = plantData[species];
+  const detailsContainer = document.getElementById('plant-info-details');
+  detailsContainer.innerHTML = ''; // Clear previous details
 
-    const value = info[colorByKey];
-    if (value !== undefined && value !== null) {
-        highlightFromLegend(colorByKey, value);
-    } else {
-        highlightFromLegend('uncolored', 'uncolored');
+  if (info) {
+    document.getElementById('plant-name').textContent = species;
+
+    // Dynamically create info sections
+    for (const [key, value] of Object.entries(info)) {
+        const section = document.createElement('div');
+        section.className = 'info-section';
+
+        const label = document.createElement('div');
+        label.className = 'info-label';
+        // Capitalize first letter and replace underscores with spaces for the label
+        label.textContent = key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
+        
+        const content = document.createElement('div');
+        content.className = 'info-content';
+        content.textContent = value;
+
+        section.appendChild(label);
+        section.appendChild(content);
+        detailsContainer.appendChild(section);
     }
-  } else {
-    // This is the original code for species selection
-    clearSelections();
-    document.getElementById('legend').classList.add('hidden');
-
-    const plantInfoEntry = Object.entries(plantData).find(([commonName, data]) => 
-        commonName.toLowerCase() === species.toLowerCase() || 
-        (data.latin_name && data.latin_name.toLowerCase() === species.toLowerCase())
-    );
-
-    const info = plantInfoEntry ? plantInfoEntry[1] : null;
-    const commonName = plantInfoEntry ? plantInfoEntry[0] : species;
-
-    const detailsContainer = document.getElementById('plant-info-details');
-    const nameEl = document.getElementById('plant-name');
-    detailsContainer.innerHTML = '';
-
-    if (info) {
-      nameEl.innerHTML = `${commonName} ${info.native ? '<span class="common-name-native">(Native)</span>' : ''}`;
-      
-      const createInfoGridItem = (label, value, icon) => {
-          if (!value) return '';
-          return `
-              <div class="info-item">
-                  ${icon}
-                  <div class="info-item-text">
-                      <div class="info-label">${label}</div>
-                      <div class="info-content">${value}</div>
-                  </div>
-              </div>
-          `;
-      };
-
-      const createInfoSection = (title, content) => {
-          if (!content) return '';
-          return `
-              <div class="info-section">
-                  <h4>${title}</h4>
-                  <p class="info-content">${content}</p>
-              </div>
-          `;
-      };
-
-      let detailsHTML = `<div class="latin-name">${info.latin_name || 'N/A'}</div>`;
-      
-      detailsHTML += '<div class="info-grid">';
-      detailsHTML += createInfoGridItem('Sun', info.sun, ICONS.sun);
-      detailsHTML += createInfoGridItem('Water', info.water, ICONS.water);
-      detailsHTML += createInfoGridItem('Height', info.height, ICONS.height);
-      detailsHTML += createInfoGridItem('Spread', info.spread, ICONS.spread);
-      detailsHTML += createInfoGridItem('Blooms', info.blooming_time, ICONS.bloom);
-      detailsHTML += createInfoGridItem('Harvest', info.harvest_time, ICONS.harvest);
-      detailsHTML += '</div>';
-
-      detailsHTML += createInfoSection('Edible Use', info.edible_use);
-      detailsHTML += createInfoSection('Medicinal Use', info.medicinal_use);
-      detailsHTML += createInfoSection('Other Uses', info.other_use);
-      
-      if (info.toxicity) {
-          detailsHTML += createInfoSection('Toxicity', info.toxicity);
+    
+    plantNodes.forEach(node => {
+      if (node.species === species) {
+        node.element.classList.add('selected');
       }
-
-      detailsContainer.innerHTML = detailsHTML;
-      
-      plantNodes.forEach(node => {
-        if (node.species === species) {
-          node.element.classList.add('selected');
-        }
-      });
-    } else {
-      nameEl.textContent = 'Data Not Found';
-      detailsContainer.innerHTML = `<p class="info-content">Detailed information for <strong>${species}</strong> could not be found.</p>`;
-    }
-    document.getElementById('plant-info').classList.add('visible');
+    });
   }
+  document.getElementById('plant-info').classList.add('visible');
 }
 
 // Helper function to find nearby plants
@@ -979,7 +884,7 @@ function findNearbyPlants(nodePos) {
     Object.entries(plantLabels).forEach(([species, positions]) => {
         positions.forEach(([plantX, plantY]) => {
             const dx = plantX - nodePos[0];
-            const dy = (-plantY) - (-nodePos[1]);
+            const dy = (-plantY) - (-nodePos[1]); // Both Ys are inverted in the data
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             if (distance <= CLOSE_RADIUS) {
@@ -1009,19 +914,18 @@ function findNearbyPlants(nodePos) {
 
 function selectNetworkNode(nodeId) {
   clearSelections();
-  selectedNetworkNodeId = nodeId;
-  document.getElementById('legend').classList.add('hidden');
   
   const canvas = document.getElementById('garden-canvas');
   const nodePos = networkPositions[nodeId.toString()];
 
+  // Create and append the visual radii disks
   const createDisk = (radius, className) => {
       const disk = document.createElement('div');
       disk.className = `radius-disk ${className}`;
       disk.style.width = `${radius * 2}px`;
       disk.style.height = `${radius * 2}px`;
       disk.style.left = `${nodePos[0]}px`;
-      disk.style.top = `${-nodePos[1]}px`;
+      disk.style.top = `${-nodePos[1]}px`; // Inverted Y
       canvas.appendChild(disk);
       radiusDisks.push(disk);
   };
@@ -1029,8 +933,70 @@ function selectNetworkNode(nodeId) {
   createDisk(CLOSE_RADIUS, 'close');
   createDisk(FAR_RADIUS, 'far');
 
-  updatePathNodePanelContent(nodeId);
+  document.getElementById('legend').classList.add('hidden');
+  const detailsContainer = document.getElementById('plant-info-details');
+  detailsContainer.innerHTML = ''; // Clear previous details
+  
+  document.getElementById('plant-name').textContent = `A Moment on the Path`;
+  
+  // Poetic description
+  const degree = adjacencyList[nodeId] ? adjacencyList[nodeId].length : 0;
+  let role = getRandomMessage(pathMessages.degree2); // Default
+  if (degree === 1) {
+      role = getRandomMessage(pathMessages.degree1);
+  } else if (degree > 2) {
+      role = getRandomMessage(pathMessages.degree3).replace('${degree}', degree);
+  }
+  const poeticContent = document.createElement('div');
+  poeticContent.className = 'info-content poetic';
+  poeticContent.textContent = role;
+  detailsContainer.appendChild(poeticContent);
 
+  // Find and display nearby plants
+  const nearbyPlants = findNearbyPlants(nodePos);
+
+  const createSpeciesList = (title, speciesList, customClass = '') => {
+      if (speciesList.length > 0) {
+          const label = document.createElement('div');
+          label.className = `info-label ${customClass}`;
+          label.textContent = title;
+          detailsContainer.appendChild(label);
+
+          const list = document.createElement('ul');
+          list.className = 'nearby-species-list';
+          speciesList.forEach(plant => {
+              const item = document.createElement('li');
+              
+              const nodeSwatch = document.createElement('span');
+              nodeSwatch.className = 'nearby-species-swatch';
+
+              const info = plantData[plant.species] || {};
+              
+              const key = colorByKey;
+              if (key === 'species') {
+                  nodeSwatch.style.backgroundColor = speciesColorMap[plant.species] || '#a9a9a9';
+              } else {
+                  const value = info[key];
+                  nodeSwatch.style.backgroundColor = dynamicColorMaps[key]?.[value] || '#a9a9a9';
+              }
+
+              const speciesText = document.createElement('span');
+              speciesText.textContent = plant.species;
+
+              item.appendChild(nodeSwatch);
+              item.appendChild(speciesText);
+
+              item.onclick = () => selectPlant(plant.species);
+              list.appendChild(item);
+          });
+          detailsContainer.appendChild(list);
+      }
+  };
+
+  createSpeciesList('Close Companions (within 10ft)', nearbyPlants.close);
+  createSpeciesList('Distant Neighbors (10-20ft)', nearbyPlants.far, 'distant-neighbors-label');
+
+  // Highlight network
   const connectedIds = adjacencyList[nodeId] || [];
   networkNodes.forEach(node => {
     if (node.nodeId === nodeId || connectedIds.includes(node.nodeId)) {
@@ -1045,81 +1011,12 @@ function selectNetworkNode(nodeId) {
   document.getElementById('plant-info').classList.add('visible');
 }
 
-function updatePathNodePanelContent(nodeId) {
-    const detailsContainer = document.getElementById('plant-info-details');
-    detailsContainer.innerHTML = '';
-    
-    document.getElementById('plant-name').textContent = `A Moment on the Path`;
-    
-    const degree = adjacencyList[nodeId] ? adjacencyList[nodeId].length : 0;
-    let role = getRandomMessage(pathMessages.degree2);
-    if (degree === 1) role = getRandomMessage(pathMessages.degree1);
-    else if (degree > 2) role = getRandomMessage(pathMessages.degree3).replace('${degree}', degree);
-    
-    const poeticContent = document.createElement('div');
-    poeticContent.className = 'info-content poetic';
-    poeticContent.textContent = role;
-    detailsContainer.appendChild(poeticContent);
-
-    const nodePos = networkPositions[nodeId.toString()];
-    const nearbyPlants = findNearbyPlants(nodePos);
-
-    const createSpeciesList = (title, speciesList, customClass = '') => {
-        if (speciesList.length > 0) {
-            const label = document.createElement('div');
-            label.className = `info-label ${customClass}`;
-            label.textContent = title;
-            detailsContainer.appendChild(label);
-
-            const list = document.createElement('ul');
-            list.className = 'nearby-species-list';
-            speciesList.forEach(plant => {
-                const item = document.createElement('li');
-                const nodeSwatch = document.createElement('span');
-                nodeSwatch.className = 'nearby-species-swatch';
-
-                const plantInfoEntry = Object.entries(plantData).find(([cn, d]) => 
-                    cn.toLowerCase() === plant.species.toLowerCase() || 
-                    (d.latin_name && d.latin_name.toLowerCase() === plant.species.toLowerCase())
-                );
-                const info = plantInfoEntry ? plantInfoEntry[1] : null;
-                
-                let swatchColor = 'rgba(74, 68, 58, 0.1)';
-
-                if (info) {
-                    const key = colorByKey;
-                    if (key === 'species') {
-                        swatchColor = speciesColorMap[plant.species] || swatchColor;
-                    } else {
-                        const value = info[key];
-                        if (value !== undefined && value !== null && dynamicColorMaps[key]) {
-                            swatchColor = dynamicColorMaps[key][value] || swatchColor;
-                        }
-                    }
-                }
-                nodeSwatch.style.backgroundColor = swatchColor;
-
-                const speciesText = document.createElement('span');
-                speciesText.textContent = plant.species;
-                item.appendChild(nodeSwatch);
-                item.appendChild(speciesText);
-                item.onclick = () => selectPlant(plant.species);
-                list.appendChild(item);
-            });
-            detailsContainer.appendChild(list);
-        }
-    };
-
-    createSpeciesList('Close Companions (within 10ft)', nearbyPlants.close);
-    createSpeciesList('Distant Neighbors (10-20ft)', nearbyPlants.far, 'distant-neighbors-label');
-}
-
 function clearSelections() {
-  selectedNetworkNodeId = null;
   document.querySelectorAll('.plant-node').forEach(n => n.classList.remove('selected'));
   document.querySelectorAll('.network-node').forEach(n => n.classList.remove('highlighted'));
   document.querySelectorAll('.connection-line').forEach(c => c.classList.remove('highlighted'));
   
+  // Remove visual radius disks
   radiusDisks.forEach(disk => disk.remove());
   radiusDisks = [];
 
@@ -1164,6 +1061,7 @@ function setupSearch() {
   });
 
   searchInput.addEventListener('blur', () => {
+      // Delay hiding results to allow click event to register
       setTimeout(() => {
           resultsContainer.innerHTML = '';
       }, 150);
@@ -1171,71 +1069,6 @@ function setupSearch() {
 }
 
 // Color and Legend Logic
-const monthOrder = {
-    'January': 1, 'February': 2, 'March': 3, 'April': 4, 'May': 5, 'June': 6,
-    'July': 7, 'August': 8, 'September': 9, 'October': 10, 'November': 11, 'December': 12
-};
-
-const seasonalBaseColors = {
-    winter: { h: 195, s: 53, l: 79 }, // Light Blue
-    spring: { h: 120, s: 60, l: 80 }, // Light Green
-    summer: { h: 120, s: 39, l: 51 }, // Darker Green
-    fall:   { h: 30,  s: 59, l: 61 }  // Brownish Orange
-};
-
-function getSeason(monthIndex) {
-    if (monthIndex >= 3 && monthIndex <= 5) return 'spring';
-    if (monthIndex >= 6 && monthIndex <= 8) return 'summer';
-    if (monthIndex >= 9 && monthIndex <= 11) return 'fall';
-    return 'winter';
-}
-
-function generateSeasonalColor(range) {
-    if (!range) return null;
-    const months = range.split('-').map(m => m.trim());
-    const startMonth = monthOrder[months[0]];
-    const endMonth = monthOrder[months[months.length - 1]] || startMonth;
-    
-    if (!startMonth) return '#cccccc'; // Default for unknown ranges like "Varies"
-
-    const season = getSeason(startMonth);
-    const base = seasonalBaseColors[season];
-    const duration = Math.max(0, endMonth - startMonth);
-    
-    // Adjust lightness based on duration. Longer duration = slightly darker.
-    const lightnessShift = duration * 4; // Increased from 2.5 to make it more pronounced
-    const finalLightness = Math.max(20, base.l - lightnessShift);
-
-    return `hsl(${base.h}, ${base.s}%, ${finalLightness}%)`;
-}
-
-
-const customColorPalettes = {
-    sun: {
-        'Full sun': '#FDE68A',
-        'Full sun to partial shade': '#FCD34D',
-        'Partial shade': '#BFDBFE',
-        'Partial shade to full shade': '#93C5FD',
-        'Full shade': '#60A5FA'
-    },
-    water: {
-        'Low': '#E3D6C5',
-        'Dry to medium': '#B99A7B',
-        'Medium': '#60A5FA',
-        'Medium to wet': '#3B82F6',
-        'Wet': '#1E40AF'
-    },
-    native: {
-        true: '#2E8B57', // SeaGreen
-        false: '#D2691E' // Chocolate
-    },
-    category: {
-        'Shrubs': '#C2A58C',
-        'Winter-interest Perennials': '#AEC6CF',
-        'Herbaceous Perennial': '#B3C99C'
-    }
-};
-
 function generateSpeciesColors() {
     const speciesNames = Object.keys(plantLabels);
     speciesNames.forEach((name, i) => {
@@ -1247,32 +1080,9 @@ function generateSpeciesColors() {
 function generateDynamicColors(key) {
     if (dynamicColorMaps[key]) return;
 
-    if (key === 'blooming_time' || key === 'harvest_time') {
-        const values = new Set();
-        Object.values(plantData).forEach(plant => {
-            if (plant[key]) values.add(plant[key]);
-        });
-        const colorMap = {};
-        values.forEach(value => {
-            colorMap[value] = generateSeasonalColor(value);
-        });
-        dynamicColorMaps[key] = colorMap;
-        return;
-    }
-
-    if (customColorPalettes[key]) {
-        dynamicColorMaps[key] = customColorPalettes[key];
-        return;
-    }
-
-    const onMapSpecies = new Set(Object.keys(plantLabels));
     const values = new Set();
-    Object.entries(plantData).forEach(([commonName, plant]) => {
-        if (onMapSpecies.has(commonName) || onMapSpecies.has(plant.latin_name)) {
-            if (plant[key] !== undefined && plant[key] !== null) {
-                values.add(plant[key]);
-            }
-        }
+    Object.values(plantData).forEach(plant => {
+        if (plant[key]) values.add(plant[key]);
     });
 
     const sortedValues = Array.from(values).sort();
@@ -1288,45 +1098,35 @@ function generateDynamicColors(key) {
 function updateNodeColors() {
     const key = colorByKey;
     plantNodes.forEach(node => {
-        const plantInfoEntry = Object.entries(plantData).find(([commonName, data]) => 
-            commonName.toLowerCase() === node.species.toLowerCase() || 
-            (data.latin_name && data.latin_name.toLowerCase() === node.species.toLowerCase())
-        );
-        const info = plantInfoEntry ? plantInfoEntry[1] : null;
-        
-        node.element.classList.remove('uncolored');
-        node.element.style.backgroundColor = '';
-
-        let color = null; 
+        const info = plantData[node.species];
+        let color = '#a9a9a9'; // Default for unknown
 
         if (info) {
             if (key === 'species') {
                 color = speciesColorMap[node.species];
             } else {
                 const value = info[key];
-                if (value !== undefined && value !== null && dynamicColorMaps[key]) {
+                if (value && dynamicColorMaps[key]) {
                     color = dynamicColorMaps[key][value];
                 }
             }
         }
-
-        if (color) {
-            node.element.style.backgroundColor = color;
-        } else {
-            node.element.classList.add('uncolored');
-        }
+        node.element.style.backgroundColor = color;
     });
 }
 
 function updateLegend() {
     const legendEl = document.getElementById('legend');
-    const legendTitle = legendEl.querySelector('h3');
     const legendItemsContainer = document.getElementById('legend-items');
-    legendItemsContainer.innerHTML = '';
+    legendItemsContainer.innerHTML = ''; // Clear current legend
 
     const key = colorByKey;
-    const select = document.getElementById('color-by-select');
-    legendTitle.textContent = select.options[select.selectedIndex].text;
+
+    if (key === 'species') {
+        legendEl.classList.add('species-mode');
+    } else {
+        legendEl.classList.remove('species-mode');
+    }
 
     const createLegendItem = (name, color, type, value) => {
         const item = document.createElement('div');
@@ -1336,51 +1136,16 @@ function updateLegend() {
         legendItemsContainer.appendChild(item);
     };
     
-    let colorMap = (key === 'species') ? speciesColorMap : dynamicColorMaps[key];
-    let itemCount = 0;
-
-    if (colorMap) {
-        const presentValues = new Set();
-        if (key !== 'species') {
-            plantNodes.forEach(node => {
-                const plantInfoEntry = Object.entries(plantData).find(([cn, d]) => 
-                    cn.toLowerCase() === node.species.toLowerCase() || 
-                    (d.latin_name && d.latin_name.toLowerCase() === node.species.toLowerCase())
-                );
-                const info = plantInfoEntry ? plantInfoEntry[1] : null;
-                if (info && info[key] !== undefined && info[key] !== null) {
-                    presentValues.add(String(info[key]));
-                }
-            });
-        }
-
-        let sortedItems = Object.entries(colorMap);
-        if (key === 'blooming_time' || key === 'harvest_time') {
-            sortedItems.sort((a, b) => (monthOrder[a[0].split('-')[0].trim()] || 99) - (monthOrder[b[0].split('-')[0].trim()] || 99));
-        }
-
-        sortedItems.forEach(([name, color]) => {
-            if (key === 'species' || presentValues.has(name)) {
-                 createLegendItem(name, color, key, name);
-                 itemCount++;
-            }
-        });
+    let colorMap = {};
+    if (key === 'species') {
+        colorMap = speciesColorMap;
+    } else if (dynamicColorMaps[key]) {
+        colorMap = dynamicColorMaps[key];
     }
 
-    if (key !== 'species') {
-        const hasUncoloredNodes = plantNodes.some(node => node.element.classList.contains('uncolored'));
-        if (hasUncoloredNodes) {
-            const uncoloredSwatch = 'rgba(74, 68, 58, 0.1)';
-            const item = document.createElement('div');
-            item.className = 'legend-item';
-            item.innerHTML = `<div class="legend-color-swatch" style="background: ${uncoloredSwatch}; border: 1px solid rgba(74, 68, 58, 0.2);"></div><span>No Data</span>`;
-            item.addEventListener('click', () => highlightFromLegend('uncolored', 'uncolored'));
-            legendItemsContainer.appendChild(item);
-        }
-    }
-
-    const MULTI_COLUMN_THRESHOLD = 10;
-    legendEl.classList.toggle('multi-column', itemCount > MULTI_COLUMN_THRESHOLD);
+    Object.entries(colorMap).forEach(([name, color]) => {
+        createLegendItem(name, color, key, name);
+    });
 }
 
 function highlightFromLegend(key, value) {
@@ -1389,20 +1154,11 @@ function highlightFromLegend(key, value) {
 
   plantNodes.forEach(node => {
       let match = false;
-      if (key === 'uncolored') {
-          if (node.element.classList.contains('uncolored')) {
-              match = true;
-          }
-      } else if (key === 'species') {
+      if (key === 'species') {
           match = node.species === value;
       } else {
-          const plantInfoEntry = Object.entries(plantData).find(([commonName, data]) => 
-              commonName.toLowerCase() === node.species.toLowerCase() || 
-              (data.latin_name && data.latin_name.toLowerCase() === node.species.toLowerCase())
-          );
-          const nodeInfo = plantInfoEntry ? plantInfoEntry[1] : null;
-
-          if (nodeInfo && nodeInfo[key] !== undefined && nodeInfo[key] !== null && String(nodeInfo[key]) === String(value)) {
+          const nodeInfo = plantData[node.species];
+          if (nodeInfo && nodeInfo[key] === value) {
               match = true;
           }
       }
@@ -1414,29 +1170,14 @@ function highlightFromLegend(key, value) {
 
 function populateColorDropdown() {
     const select = document.getElementById('color-by-select');
-    const onMapSpecies = new Set(Object.keys(plantLabels));
-    let uniqueKeys = new Set();
-    const displayNameMap = {
-        sun: 'Sun Exposure',
-        water: 'Water Needs',
-        category: 'Plant Category',
-        native: 'Native Status',
-        edible_use: 'Edible Use',
-        medicinal_use: 'Medicinal Use',
-        other_use: 'Other Use',
-        toxicity: 'Toxicity',
-        blooming_time: 'Blooming Time',
-        harvest_time: 'Harvest Time'
-    };
-    const priorityOrder = ['native', 'sun', 'water', 'category', 'blooming_time', 'harvest_time'];
-
-    Object.entries(plantData).forEach(([commonName, data]) => {
-        if (onMapSpecies.has(commonName) || (data.latin_name && onMapSpecies.has(data.latin_name))) {
-            Object.keys(data).forEach(key => uniqueKeys.add(key));
-        }
+    const uniqueKeys = new Set();
+    Object.values(plantData).forEach(plant => {
+        Object.keys(plant).forEach(key => {
+            uniqueKeys.add(key);
+        });
     });
 
-    select.innerHTML = '';
+    select.innerHTML = ''; // Clear existing options
     
     const createOption = (value, text) => {
         const option = document.createElement('option');
@@ -1447,16 +1188,8 @@ function populateColorDropdown() {
 
     createOption('species', 'Species');
     
-    priorityOrder.forEach(key => {
-        if (uniqueKeys.has(key)) {
-            createOption(key, displayNameMap[key] || key);
-            uniqueKeys.delete(key);
-        }
-    });
-
-    const remainingKeys = Array.from(uniqueKeys).filter(key => key !== 'latin_name' && key !== 'height' && key !== 'spread').sort();
-    remainingKeys.forEach(key => {
-        const formattedKey = displayNameMap[key] || (key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '));
+    Array.from(uniqueKeys).sort().forEach(key => {
+        const formattedKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
         createOption(key, formattedKey);
     });
 }
@@ -1494,7 +1227,7 @@ function initializeVisualization() {
   
   populateColorDropdown();
   generateSpeciesColors();
-  
+  // Generate colors for all possible dynamic keys upfront
   const allKeys = new Set();
   Object.values(plantData).forEach(plant => Object.keys(plant).forEach(k => allKeys.add(k)));
   allKeys.forEach(key => generateDynamicColors(key));
@@ -1505,8 +1238,9 @@ function initializeVisualization() {
   createConnections();
   setupMap();
   setupSearch();
-  updateNodeColors(); 
+  updateNodeColors(); // Apply initial colors
   updateLegend();
+  // centerView is now called from setupMap after the image loads
   
   console.log('Visualization initialized successfully');
 }
@@ -1518,14 +1252,15 @@ function centerView() {
   const imageHeight = mapImage.naturalHeight || 800; // Fallback height
 
   const centerX = imageWidth / 2;
-  const centerY = -imageHeight / 2;
+  const centerY = -imageHeight / 2; // Center in inverted coordinate system
 
   const availableWidth = window.innerWidth;
   const availableHeight = window.innerHeight;
 
+  // Calculate scale to fit the map initially
   const scaleX = availableWidth / imageWidth;
   const scaleY = availableHeight / imageHeight;
-  scale = Math.min(scaleX, scaleY) * 0.9;
+  scale = Math.min(scaleX, scaleY) * 0.9; // 90% of the smallest scale to fit with padding
 
   translateX = (availableWidth / 2) - (centerX * scale);
   translateY = (availableHeight / 2) - (centerY * scale);
@@ -1548,24 +1283,38 @@ document.addEventListener('DOMContentLoaded', () => {
   const aboutBtn = document.getElementById('about-btn');
   const closeAboutBtn = document.getElementById('close-about');
   const tutorialList = tutorialOverlay.querySelector('ul');
-  const legendMinifyToggle = document.getElementById('legend-minify-toggle');
 
   const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
   if (isTouchDevice) {
-      const panZoomLi = tutorialList.querySelector('li');
+      const panZoomLi = tutorialList.querySelector('li'); // Get the first li
       if (panZoomLi) {
           panZoomLi.innerHTML = '<strong>Pan & Zoom:</strong> Drag with one finger to move the map. Pinch with two fingers to zoom.';
       }
   }
 
+  // Show the tutorial on first load
   tutorialOverlay.classList.add('visible');
-  closeTutorialBtn.onclick = () => tutorialOverlay.classList.remove('visible');
-  aboutBtn.onclick = () => aboutOverlay.classList.add('visible');
-  closeAboutBtn.onclick = () => aboutOverlay.classList.remove('visible');
-  mobileMenuToggle.onclick = () => headerContainer.classList.toggle('menu-open');
-  legendToggle.onclick = () => legend.classList.toggle('mobile-hidden');
-  legendMinifyToggle.onclick = () => legend.classList.toggle('minified');
+
+  closeTutorialBtn.onclick = () => {
+      tutorialOverlay.classList.remove('visible');
+  };
+
+  aboutBtn.onclick = () => {
+      aboutOverlay.classList.add('visible');
+  };
+
+  closeAboutBtn.onclick = () => {
+      aboutOverlay.classList.remove('visible');
+  };
+
+  mobileMenuToggle.onclick = () => {
+      headerContainer.classList.toggle('menu-open');
+  };
+
+  legendToggle.onclick = () => {
+      legend.classList.toggle('mobile-hidden');
+  };
 
   if (window.innerWidth <= 768) {
       legend.classList.add('mobile-hidden');
@@ -1577,13 +1326,9 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   colorSelect.onchange = (e) => {
-    clearSelections();
     colorByKey = e.target.value;
     updateNodeColors();
     updateLegend();
-    if (selectedNetworkNodeId) {
-        updatePathNodePanelContent(selectedNetworkNodeId);
-    }
   };
 
   document.getElementById('toggle-map').onchange = (e) => {
