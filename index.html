@@ -1042,6 +1042,7 @@ function displayCategoryPanel(species) {
     
     if (!plantInfoEntry) return;
 
+    const commonNameForDisplay = plantInfoEntry[0]; // Get the definitive common name
     const info = plantInfoEntry[1];
     const categoryValue = info[colorByKey];
 
@@ -1063,25 +1064,23 @@ function displayCategoryPanel(species) {
 
     let detailsHTML = `
         <div class="info-content" style="margin-bottom: 16px;">
-            You selected <strong>${species}</strong>.
+            You selected <strong>${commonNameForDisplay}</strong>.
         </div>
-        <button class="control-btn" id="view-species-details" style="margin-bottom: 20px;">View Details for ${species}</button>
+        <button class="control-btn" id="view-species-details" style="margin-bottom: 20px;">View Details for ${commonNameForDisplay}</button>
         <div class="info-label">Other plants in this category:</div>
         <ul class="nearby-species-list">
     `;
     
     const otherPlants = [];
     Object.entries(plantData).forEach(([commonName, data]) => {
-        if (String(data[colorByKey]) === String(categoryValue) && commonName !== species) {
+        if (String(data[colorByKey]) === String(categoryValue) && commonName !== commonNameForDisplay) {
             otherPlants.push(commonName);
         }
     });
 
     if (otherPlants.length > 0) {
         otherPlants.sort().forEach(plantName => {
-            const otherPlantInfo = plantData[plantName];
-            const latinTitle = otherPlantInfo?.latin_name ? `title="${otherPlantInfo.latin_name}"` : '';
-            detailsHTML += `<li data-species="${plantName}" ${latinTitle}>${plantName}</li>`;
+            detailsHTML += `<li data-species="${plantName}">${plantName}</li>`;
         });
     } else {
         detailsHTML += `<li>None</li>`;
