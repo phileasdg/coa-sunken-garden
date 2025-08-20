@@ -145,8 +145,9 @@ input:checked + .slider:before { transform: translateX(18px); }
 #legend.minified .legend-header { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
 #legend.minified h3 { padding-bottom: 0; }
 #legend.minified #legend-items { display: none; }
-.legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.85rem; color: #6b6355; cursor: pointer; transition: color 0.2s ease; break-inside: avoid; }
-.legend-item:hover { color: #3b372f; }
+.legend-item { display: flex; align-items: center; margin-bottom: 8px; font-size: 0.85rem; color: #6b6355; cursor: pointer; transition: all 0.2s ease; break-inside: avoid; border-radius: 4px; padding: 2px 4px; margin: 0 -4px 8px -4px; }
+.legend-item:hover { background-color: rgba(139, 125, 107, 0.1); }
+.legend-item.highlighted { font-weight: 600; color: #3b372f; background-color: rgba(139, 125, 107, 0.15); }
 .legend-color-swatch { width: 12px; height: 12px; border-radius: 50%; margin-right: 10px; flex-shrink: 0; border: 1px solid rgba(0, 0, 0, 0.1); }
 
 /* Info Panel Styling */
@@ -1119,6 +1120,7 @@ function clearSelections() {
   document.querySelectorAll('.plant-node').forEach(n => n.classList.remove('selected'));
   document.querySelectorAll('.network-node').forEach(n => n.classList.remove('highlighted'));
   document.querySelectorAll('.connection-line').forEach(c => c.classList.remove('highlighted'));
+  document.querySelectorAll('.legend-item').forEach(i => i.classList.remove('highlighted'));
   
   radiusDisks.forEach(disk => disk.remove());
   radiusDisks = [];
@@ -1176,6 +1178,15 @@ const monthOrder = {
     'July': 7, 'August': 8, 'September': 9, 'October': 10, 'November': 11, 'December': 12
 };
 
+function getSortValues(range) {
+    if (!range) return { start: 99, end: 99 };
+    const months = range.split('-').map(m => m.trim());
+    const start = monthOrder[months[0]] || 99;
+    const end = monthOrder[months[months.length - 1]] || start;
+    return { start, end };
+}
+
+
 const seasonalBaseColors = {
     winter: { h: 195, s: 53, l: 79 }, // Light Blue
     spring: { h: 120, s: 60, l: 80 }, // Light Green
@@ -1192,18 +1203,16 @@ function getSeason(monthIndex) {
 
 function generateSeasonalColor(range) {
     if (!range) return null;
-    const months = range.split('-').map(m => m.trim());
-    const startMonth = monthOrder[months[0]];
-    const endMonth = monthOrder[months[months.length - 1]] || startMonth;
+    const { start, end } = getSortValues(range);
     
-    if (!startMonth) return '#cccccc'; // Default for unknown ranges like "Varies"
+    if (start === 99) return '#cccccc'; // Default for unknown ranges like "Varies"
 
-    const season = getSeason(startMonth);
+    const season = getSeason(start);
     const base = seasonalBaseColors[season];
-    const duration = Math.max(0, endMonth - startMonth);
+    const duration = Math.max(0, end - start);
     
     // Adjust lightness based on duration. Longer duration = slightly darker.
-    const lightnessShift = duration * 4; // Increased from 2.5 to make it more pronounced
+    const lightnessShift = duration * 4; 
     const finalLightness = Math.max(20, base.l - lightnessShift);
 
     return `hsl(${base.h}, ${base.s}%, ${finalLightness}%)`;
@@ -1212,27 +1221,27 @@ function generateSeasonalColor(range) {
 
 const customColorPalettes = {
     sun: {
-        'Full sun': '#FDE68A',
-        'Full sun to partial shade': '#FCD34D',
-        'Partial shade': '#BFDBFE',
-        'Partial shade to full shade': '#93C5FD',
-        'Full shade': '#60A5FA'
+        'Full sun': '#FBBF24', // Amber 400
+        'Full sun to partial shade': '#FCD34D', // Amber 300
+        'Partial shade': '#A5B4FC', // Indigo 300
+        'Partial shade to full shade': '#7DD3FC', // Sky 300
+        'Full shade': '#94A3B8' // Slate 400
     },
     water: {
-        'Low': '#E3D6C5',
-        'Dry to medium': '#B99A7B',
-        'Medium': '#60A5FA',
-        'Medium to wet': '#3B82F6',
-        'Wet': '#1E40AF'
+        'Low': '#FDE68A', // Amber 200
+        'Dry to medium': '#F59E0B', // Amber 500
+        'Medium': '#60A5FA', // Blue 400
+        'Medium to wet': '#3B82F6', // Blue 500
+        'Wet': '#1E3A8A' // Blue 800
     },
     native: {
-        true: '#2E8B57', // SeaGreen
-        false: '#D2691E' // Chocolate
+        true: '#34D399', // Emerald 400
+        false: '#F87171' // Red 400
     },
     category: {
-        'Shrubs': '#C2A58C',
-        'Winter-interest Perennials': '#AEC6CF',
-        'Herbaceous Perennial': '#B3C99C'
+        'Shrubs': '#D8B4FE', // Purple 300
+        'Winter-interest Perennials': '#67E8F9', // Cyan 300
+        'Herbaceous Perennial': '#86EFAC' // Green 300
     }
 };
 
@@ -1331,6 +1340,8 @@ function updateLegend() {
     const createLegendItem = (name, color, type, value) => {
         const item = document.createElement('div');
         item.className = 'legend-item';
+        item.dataset.key = type;
+        item.dataset.value = value;
         item.innerHTML = `<div class="legend-color-swatch" style="background: ${color};"></div><span>${name}</span>`;
         item.addEventListener('click', () => highlightFromLegend(type, value));
         legendItemsContainer.appendChild(item);
@@ -1356,7 +1367,14 @@ function updateLegend() {
 
         let sortedItems = Object.entries(colorMap);
         if (key === 'blooming_time' || key === 'harvest_time') {
-            sortedItems.sort((a, b) => (monthOrder[a[0].split('-')[0].trim()] || 99) - (monthOrder[b[0].split('-')[0].trim()] || 99));
+            sortedItems.sort((a, b) => {
+                const valA = getSortValues(a[0]);
+                const valB = getSortValues(b[0]);
+                if (valA.start !== valB.start) {
+                    return valA.start - valB.start;
+                }
+                return valA.end - valB.end;
+            });
         }
 
         sortedItems.forEach(([name, color]) => {
@@ -1373,6 +1391,8 @@ function updateLegend() {
             const uncoloredSwatch = 'rgba(74, 68, 58, 0.1)';
             const item = document.createElement('div');
             item.className = 'legend-item';
+            item.dataset.key = 'uncolored';
+            item.dataset.value = 'uncolored';
             item.innerHTML = `<div class="legend-color-swatch" style="background: ${uncoloredSwatch}; border: 1px solid rgba(74, 68, 58, 0.2);"></div><span>No Data</span>`;
             item.addEventListener('click', () => highlightFromLegend('uncolored', 'uncolored'));
             legendItemsContainer.appendChild(item);
@@ -1410,6 +1430,12 @@ function highlightFromLegend(key, value) {
         node.element.classList.add('selected');
       }
     });
+
+    document.querySelectorAll('.legend-item').forEach(item => {
+        if (item.dataset.key === key && item.dataset.value === String(value)) {
+            item.classList.add('highlighted');
+        }
+    });
 }
 
 function populateColorDropdown() {
@@ -1428,7 +1454,7 @@ function populateColorDropdown() {
         blooming_time: 'Blooming Time',
         harvest_time: 'Harvest Time'
     };
-    const priorityOrder = ['native', 'sun', 'water', 'category', 'blooming_time', 'harvest_time'];
+    const priorityOrder = ['sun', 'water', 'category', 'native', 'blooming_time', 'harvest_time'];
 
     Object.entries(plantData).forEach(([commonName, data]) => {
         if (onMapSpecies.has(commonName) || (data.latin_name && onMapSpecies.has(data.latin_name))) {
