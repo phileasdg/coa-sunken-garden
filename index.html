@@ -236,30 +236,62 @@ body.paths-hidden.plants-hidden #garden-map:not(.hidden) {
     opacity: 0.8; 
 }
 
+/* --- Node Touch Target Styling --- */
+.node-wrapper {
+  position: absolute;
+  width: 44px; /* Standard touch target size */
+  height: 44px;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+}
+
+.plant-node, .network-node {
+  position: relative;
+  left: auto;
+  top: auto;
+  transform: none; /* Reset transform as wrapper handles it */
+  pointer-events: none; /* Make sure wrapper gets the click */
+}
+
+.node-wrapper:hover .plant-node {
+  transform: scale(1.5);
+  border-color: rgba(74, 68, 58, 0.8);
+}
+.node-wrapper:hover .network-node {
+  transform: scale(2.5);
+  background: #A0522D;
+}
+.node-wrapper .plant-node.selected {
+  transform: scale(2.2);
+  border-color: #fff;
+  box-shadow: 0 0 16px rgba(0,0,0,0.5);
+}
+.node-wrapper .network-node.highlighted {
+  transform: scale(2.5);
+  background: #A0522D;
+}
+/* --- End Node Touch Target Styling --- */
+
+
 /* Network & Plant Nodes */
 .network-node {
-  position: absolute; width: 8px; height: 8px; background: #996633; border: 2px solid rgba(255, 255, 255, 0.7); box-shadow: 0 0 6px rgba(0,0,0,0.3); transform: translate(-50%, -50%); border-radius: 50%; cursor: pointer; transition: all 0.3s ease; z-index: 5;
+  width: 8px; height: 8px; background: #996633; border: 2px solid rgba(255, 255, 255, 0.7); box-shadow: 0 0 6px rgba(0,0,0,0.3); border-radius: 50%; transition: all 0.3s ease;
 }
-.network-node:active {
-    transform: translate(-50%, -50%) scale(2.2);
-}
-.network-node.highlighted, .network-node:hover { background: #A0522D; transform: translate(-50%, -50%) scale(2.5); z-index: 20; }
-body.paths-hidden .network-node, body.paths-hidden .connection-line { display: none; }
+body.paths-hidden .node-wrapper.network-type, body.paths-hidden .connection-line { display: none; }
 
 .plant-node {
-  position: absolute; width: 15px; height: 15px; border: 3px solid rgba(74, 68, 58, 0.4); box-shadow: 0 0 8px rgba(0,0,0,0.3); transform: translate(-50%, -50%); border-radius: 50%; cursor: pointer; transition: all 0.3s ease; z-index: 10;
+  width: 15px; height: 15px; border: 3px solid rgba(74, 68, 58, 0.4); box-shadow: 0 0 8px rgba(0,0,0,0.3); border-radius: 50%; transition: all 0.3s ease;
 }
 .plant-node.uncolored {
     background-color: rgba(74, 68, 58, 0.1);
     border-color: rgba(74, 68, 58, 0.2);
     opacity: 0.7;
 }
-.plant-node:active {
-    transform: translate(-50%, -50%) scale(1.3);
-}
-.plant-node:hover { transform: translate(-50%, -50%) scale(1.5); border-color: rgba(74, 68, 58, 0.8); z-index: 20; }
-.plant-node.selected { transform: translate(-50%, -50%) scale(2.2); border-color: #fff; box-shadow: 0 0 16px rgba(0,0,0,0.5); z-index: 25; }
-body.plants-hidden .plant-node { display: none; }
+body.plants-hidden .node-wrapper.plant-type { display: none; }
 
 /* Connection Lines */
 .connection-line {
@@ -373,7 +405,7 @@ body.plants-hidden .plant-node { display: none; }
 
 
 /* Mobile Toggles */
-#mobile-menu-toggle, #legend-toggle { display: none; }
+#mobile-menu-toggle { display: none; }
 
 /* Responsive & Accessibility */
 @media (max-width: 768px) {
@@ -402,7 +434,7 @@ body.plants-hidden .plant-node { display: none; }
   body.menu-open #header-content {
     transform: translateX(0);
   }
-  #mobile-menu-toggle, #legend-toggle {
+  #mobile-menu-toggle {
     display: block;
     position: fixed;
     top: 24px;
@@ -422,24 +454,12 @@ body.plants-hidden .plant-node { display: none; }
   body.menu-open #mobile-menu-toggle {
       z-index: 105; /* On top of everything when menu is open */
   }
-  #legend-toggle { 
-    right: 24px; 
-    z-index: 102;
-  }
-  #legend-toggle.hidden {
-      display: none;
-  }
   #legend {
     right: 24px;
     left: auto;
     max-width: calc(100% - 96px); /* Prevent overlap with menu button */
     max-height: calc(100vh - 120px); /* Prevent overlap with search bar */
     z-index: 102;
-  }
-  #legend.mobile-hidden {
-    transform: translateX(calc(100% + 32px));
-    opacity: 0;
-    pointer-events: none;
   }
   #legend.multi-column #legend-items {
       column-count: 1;
@@ -532,14 +552,6 @@ body.plants-hidden .plant-node { display: none; }
       </svg>
   </button>
 
-  <button id="legend-toggle">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21Z" stroke="#4a443a" stroke-width="2" stroke-miterlimit="10"/>
-          <path d="M12 16.5C14.4853 16.5 16.5 14.4853 16.5 12C16.5 9.51472 14.4853 7.5 12 7.5C9.51472 7.5 7.5 9.51472 7.5 12C7.5 14.4853 9.51472 16.5 12 16.5Z" stroke="#4a443a" stroke-width="2" stroke-miterlimit="10"/>
-          <path d="M12 3V21" stroke="#4a443a" stroke-width="2" stroke-miterlimit="10"/>
-      </svg>
-  </button>
-
   <div id="legend">
     <div class="legend-header">
         <h3>Legend</h3>
@@ -597,7 +609,7 @@ body.plants-hidden .plant-node { display: none; }
           <p>The map and initial plant labels are based on the <a href="https://www.coa.edu/live/files/841-appendix-1-sunken-garden-brochure-pdf" target="_blank">Sunken Garden Brochure</a>. The detailed plant information was sourced from Yaniv Korman's charmingly and lovingly edited Edible Plant List of the Sunken Garden booklet.</p>
           <p>If you find this map useful or inspiring, please consider supporting its continued development or checking out more of my work below.</p>
           <a href="https://phileasdg.github.io/" target="_blank" class="modal-button">Personal Blog</a>
-          <a href="https://www.paypal.com/donate/?business=K74DYULZRHZ2J&no_recurring=0&item_name=Buy+me+a+coffee+%3AD&currency_code=EUR" target="_blank" id="donate-button" class="modal-button" style="margin-top: 12px;">Buy me a coffee</a>
+          <a href="https://www.paypal.com/donate/?business=K74DYULZRHZ2J&no_recurring=0&item_name=Buy+me+a+coffee+%3AD&currency_code=USD" target="_blank" id="donate-button" class="modal-button" style="margin-top: 12px;">Buy me a coffee</a>
           <button id="close-about" class="modal-button" style="background-color: #6b6355; margin-top: 12px;">Close</button>
       </div>
   </div>
@@ -848,36 +860,41 @@ function setupPanZoom() {
 // Create visual elements
 function createPlantNodes() {
   const canvas = document.getElementById('garden-canvas');
-  plantNodes.forEach(node => node.element.remove());
+  plantNodes.forEach(node => node.wrapper.remove());
   plantNodes.length = 0;
   
   Object.entries(plantLabels).forEach(([species, positions]) => {
     positions.forEach(([x, y]) => {
       y = -y; // Y-coordinate is inverted to match Cartesian system
       
+      const wrapper = document.createElement('div');
+      wrapper.className = 'node-wrapper plant-type';
+      wrapper.style.left = `${x}px`;
+      wrapper.style.top = `${y}px`;
+
       const node = document.createElement('div');
       node.className = 'plant-node';
-      node.style.left = `${x}px`;
-      node.style.top = `${y}px`;
       node.title = species;
-      node.addEventListener('click', (e) => {
+
+      wrapper.addEventListener('click', (e) => {
         e.stopPropagation();
         selectPlant(species, true);
       });
-      node.addEventListener('touchstart', (e) => {
+      wrapper.addEventListener('touchstart', (e) => {
         e.stopPropagation();
         selectPlant(species, true);
       });
       
-      canvas.appendChild(node);
-      plantNodes.push({ element: node, species, x, y });
+      wrapper.appendChild(node);
+      canvas.appendChild(wrapper);
+      plantNodes.push({ element: node, wrapper: wrapper, species, x, y });
     });
   });
 }
 
 function createNetworkNodes() {
   const canvas = document.getElementById('garden-canvas');
-  networkNodes.forEach(node => node.element.remove());
+  networkNodes.forEach(node => node.wrapper.remove());
   networkNodes.length = 0;
   
   Object.entries(networkPositions).forEach(([vertex, position]) => {
@@ -885,22 +902,27 @@ function createNetworkNodes() {
     let [x, y] = position;
     y = -y; // Y-coordinate is inverted to match Cartesian system
     
+    const wrapper = document.createElement('div');
+    wrapper.className = 'node-wrapper network-type';
+    wrapper.style.left = `${x}px`;
+    wrapper.style.top = `${y}px`;
+
     const node = document.createElement('div');
     node.className = 'network-node';
-    node.style.left = `${x}px`;
-    node.style.top = `${y}px`;
     node.title = `Network Node ${vertexNum}`;
-    node.addEventListener('click', (e) => {
+
+    wrapper.addEventListener('click', (e) => {
       e.stopPropagation();
       selectNetworkNode(vertexNum);
     });
-    node.addEventListener('touchstart', (e) => {
+    wrapper.addEventListener('touchstart', (e) => {
       e.stopPropagation();
       selectNetworkNode(vertexNum);
     });
     
-    canvas.appendChild(node);
-    networkNodes.push({ element: node, nodeId: vertexNum, x, y });
+    wrapper.appendChild(node);
+    canvas.appendChild(wrapper);
+    networkNodes.push({ element: node, wrapper: wrapper, nodeId: vertexNum, x, y });
   });
 }
 
@@ -1246,8 +1268,8 @@ function updatePathNodePanelContent(nodeId) {
 
 function clearSelections() {
   selectedNetworkNodeId = null;
-  document.querySelectorAll('.plant-node').forEach(n => n.classList.remove('selected'));
-  document.querySelectorAll('.network-node').forEach(n => n.classList.remove('highlighted'));
+  document.querySelectorAll('.plant-node.selected').forEach(n => n.classList.remove('selected'));
+  document.querySelectorAll('.network-node.highlighted').forEach(n => n.classList.remove('highlighted'));
   document.querySelectorAll('.connection-line').forEach(c => c.classList.remove('highlighted'));
   document.querySelectorAll('.legend-item').forEach(i => i.classList.remove('highlighted'));
   
@@ -1661,12 +1683,12 @@ function updateScrollIndicator(panelId, contentId) {
     if (!panel || !content) return;
     
     setTimeout(() => {
-        if (content.scrollHeight > content.clientHeight) {
+        if (content.scrollHeight > panel.clientHeight) {
             panel.classList.add('is-scrollable');
         } else {
             panel.classList.remove('is-scrollable');
         }
-    }, 150);
+    }, 350); // Increased timeout for better reliability on mobile
 }
 
 
@@ -1726,7 +1748,6 @@ document.addEventListener('DOMContentLoaded', () => {
   
   const headerContainer = document.getElementById('header-container');
   const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-  const legendToggle = document.getElementById('legend-toggle');
   const legend = document.getElementById('legend');
   const colorSelect = document.getElementById('color-by-select');
   const tutorialOverlay = document.getElementById('tutorial-overlay');
@@ -1760,15 +1781,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   aboutBtn.onclick = () => aboutOverlay.classList.add('visible');
   closeAboutBtn.onclick = () => aboutOverlay.classList.remove('visible');
+  
   mobileMenuToggle.onclick = () => {
       document.body.classList.toggle('menu-open');
+      // If the menu is now open, minify the legend to save space
+      if (document.body.classList.contains('menu-open')) {
+          legend.classList.add('minified');
+      }
   };
-  legendToggle.onclick = () => legend.classList.toggle('mobile-hidden');
-  legendMinifyToggle.onclick = () => legend.classList.toggle('minified');
 
-  if (window.innerWidth <= 768) {
-      legend.classList.add('mobile-hidden');
-  }
+  legendMinifyToggle.onclick = () => legend.classList.toggle('minified');
 
   document.getElementById('reset-view').onclick = () => {
     centerView();
